@@ -102,14 +102,6 @@ O JavaScript está dividido em blocos:
 
 Abra o `index.html` no navegador. Não precisa instalar nada.
 
-## Como publicar na Vercel (grátis)
-
-1. Entre em [vercel.com](https://vercel.com) com a sua conta do GitHub.
-2. Clique em **Add New → Project**.
-3. Escolha este repositório e clique em **Deploy**.
-
-O arquivo `index.html` precisa ficar na raiz do repositório.
-
 ## Ideias para o futuro
 
 - Vista 3D com perspectiva e personagens mais realistas
