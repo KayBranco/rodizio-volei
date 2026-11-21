@@ -98,9 +98,10 @@ O JavaScript está dividido em blocos:
 
 ---
 
-## Como rodar
+## Como visualizar?
 
-Abra o `index.html` no navegador. Não precisa instalar nada.
+Abra o link: 
+https://rodizio-volei.vercel.app no navegador. Não precisa instalar nada.
 
 ## Ideias para o futuro
 
