@@ -3,22 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Aprenda o rodízio do vôlei (5-1, 4-2 e 6-2) vendo os jogadores se movimentarem na quadra.">
+<meta name="theme-color" content="#070b16">
+<meta name="description" content="Aprenda o rodízio do vôlei de quadra (5-1, 4-2 e 6-2) e o jogo de dupla na areia vendo os jogadores se movimentarem.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Rodízio de Vôlei">
+<meta property="og:description" content="Escolha a modalidade, o sistema e a sua posição e veja os jogadores se movimentando: recepção, levantamento, ataque e defesa.">
+<meta property="og:url" content="https://rodizio-volei.vercel.app">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%90%3C/text%3E%3C/svg%3E">
 <title>Rodízio de Vôlei</title>
 <style>
 :root{--bg:#070b16;--panel:#0e1530;--panel2:#141d3f;--line:#233068;--txt:#e8ecff;--mut:#93a0cf;--blue:#4f8cff;--gold:#fbbf24}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:#7dd3fc}
 .wrap{max-width:1120px;margin:0 auto;padding:14px 14px 48px}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 h1{font-size:22px;margin:6px 0 2px}
 h2{font-size:16px;margin:0 0 6px}
 h3{font-size:14px;margin:12px 0 4px;color:var(--gold)}
 .sub{color:var(--mut);margin:0 0 14px;font-size:14px}
+.share{white-space:nowrap;margin-top:6px;font-size:13px}
+.tabs{display:flex;gap:8px;margin:0 0 14px}
+.tabs button{flex:1;padding:10px 8px;font-weight:600}
 .layout{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
 @media(min-width:900px){.layout{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:start}.stage{position:sticky;top:12px}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
 .side{display:grid;gap:14px}
-svg{width:100%;height:auto;display:block;border-radius:10px;background:#050816}
+svg{width:100%;height:auto;display:block;border-radius:10px;background:#050816;touch-action:manipulation}
+.hint{color:var(--mut);font-size:12px;margin:8px 2px 0}
 .lbl{font-size:12px;color:var(--mut);margin:10px 0 5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
 .row{display:flex;flex-wrap:wrap;gap:6px}
 button{font:inherit;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:7px 11px;cursor:pointer}
@@ -47,57 +60,85 @@ button.gold.on{background:var(--gold);border-color:var(--gold);color:#222}
 details{margin:6px 0}
 summary{cursor:pointer;font-weight:600}
 details p{color:var(--mut);margin:6px 0}
+.cmp{width:100%;border-collapse:collapse;font-size:13px}
+.cmp th,.cmp td{border-bottom:1px solid var(--line);padding:6px 5px;text-align:left;vertical-align:top}
+.cmp th{color:var(--gold);font-weight:600}
+.cmp td:first-child{color:var(--mut);white-space:nowrap}
+.src{font-size:12px;color:var(--mut);margin:8px 0 0}
 footer{color:var(--mut);font-size:12px;margin-top:18px}
 #players g{transition:opacity .35s}
+#players>g{cursor:pointer}
 .ring{transition:opacity .3s}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--blue);padding:8px 14px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:10;font-size:14px}
+.toast.show{opacity:1}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🏐 Rodízio de Vôlei</h1>
-  <p class="sub">Escolha o sistema, a rotação e a sua posição, e veja os jogadores se movimentando na quadra.</p>
+  <div class="top">
+    <div>
+      <h1>🏐 Rodízio de Vôlei</h1>
+      <p class="sub">Escolha a modalidade, a sua posição e veja os jogadores se movimentando na quadra.</p>
+    </div>
+    <button id="share" class="share" title="Compartilhar exatamente esta tela">🔗 Compartilhar</button>
+  </div>
+  <div class="tabs" id="tabs"></div>
+
   <div class="layout">
     <div class="stage card">
       <svg id="court" viewBox="-1.6 -4.6 12.2 16" role="img" aria-label="Quadra de vôlei vista de cima"></svg>
+      <p class="hint">👆 Toque num jogador na quadra para escolher quem você é.</p>
       <div class="steps" id="steps"></div>
       <div class="transport">
-        <button id="prev">◀</button>
+        <button id="prev" aria-label="Passo anterior">◀</button>
         <button id="play" class="play">▶ Simular</button>
-        <button id="next">▶</button>
+        <button id="next" aria-label="Próximo passo">▶</button>
         <label style="font-size:12px;color:var(--mut)">Velocidade <input type="range" id="speed" min="0.5" max="2" step="0.25" value="1"></label>
       </div>
     </div>
 
     <div class="side">
       <div class="card">
-        <div class="lbl" style="margin-top:0">Sistema</div><div class="row" id="segSys"></div>
-        <div class="lbl">Rotação</div><div class="row" id="segRot"></div>
+        <div id="grpSys"><div class="lbl" style="margin-top:0">Sistema</div><div class="row" id="segSys"></div></div>
+        <div id="grpRot"><div class="lbl">Rotação</div><div class="row" id="segRot"></div></div>
         <div class="lbl">Situação</div><div class="row" id="segMode"></div>
+        <div id="grpWho"><div class="lbl" id="whoLbl">Quem saca</div><div class="row" id="segWho"></div></div>
         <div class="lbl">Eu sou</div><div class="row" id="chips"></div>
         <label class="chk" id="libWrap"><input type="checkbox" id="chkLib" checked> Líbero em quadra (entra no lugar do central no fundo)</label>
-        <label class="chk"><input type="checkbox" id="chkSlots" checked> Mostrar posições (P1 a P6)</label>
+        <label class="chk"><input type="checkbox" id="chkSlots" checked> <span id="chkSlotsTxt">Mostrar posições (P1 a P6)</span></label>
       </div>
 
       <div class="card" id="info"></div>
 
-      <div class="card">
+      <div class="card" id="minisCard">
         <h2>Todas as rotações</h2>
         <p class="sub" style="margin-bottom:8px">Toque numa rotação para ver. Quadra vista de trás: rede em cima.</p>
         <div class="minis" id="minis"></div>
       </div>
 
       <div class="card">
-        <h2>Regrinhas para iniciantes</h2>
-        <details open><summary>Como o rodízio gira</summary><p>Sempre que o seu time <b>ganha o saque</b> (tirando do adversário), todo mundo gira uma posição no sentido horário: P2 → P1 → P6 → P5 → P4 → P3 → P2. Quem vai para P1 é quem saca.</p></details>
-        <details><summary>Posições P1 a P6</summary><p>Na rede: P4 (esquerda), P3 (meio), P2 (direita). No fundo: P5 (esquerda), P6 (meio), P1 (direita, onde se saca).</p></details>
-        <details><summary>Regra de sobreposição</summary><p>No momento do saque, quem está na frente não pode estar "ao lado errado" de quem está atrás dele. Ex.: o jogador de P2 deve estar à frente do de P1, e à direita do de P3. Depois do saque, todos podem correr livremente.</p></details>
-        <details><summary>Líbero</summary><p>Especialista de defesa e recepção, com camisa de outra cor. Entra no lugar do central quando ele está no fundo (P6 e P5). Não ataca nem levanta acima da rede.</p></details>
-        <details id="sysInfo" open><summary>Sobre este sistema</summary><p id="sysTxt"></p></details>
+        <h2>Quadra x Areia: as diferenças</h2>
+        <table class="cmp">
+          <tr><th></th><th>Quadra</th><th>Areia</th></tr>
+          <tr><td>Jogadores</td><td>6 por time</td><td>2 por dupla</td></tr>
+          <tr><td>Tamanho</td><td>18 x 9 m</td><td>16 x 8 m</td></tr>
+          <tr><td>Pontos</td><td>Sets até 25 (5º set até 15)</td><td>Sets até 21 (3º set até 15)</td></tr>
+          <tr><td>Rodízio</td><td>Sim: todos giram ao ganhar o saque</td><td>Não: só alterna quem saca</td></tr>
+          <tr><td>Troca de lado</td><td>Entre os sets</td><td>A cada 7 pontos (5 no 3º set)</td></tr>
+          <tr><td>Substituição</td><td>Sim, e tem líbero</td><td>Não</td></tr>
+          <tr><td>Bloqueio</td><td>Não conta como toque</td><td>Conta como um dos 3 toques</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2 id="rulesTitle">Regrinhas para iniciantes</h2>
+        <div id="rulesBody"></div>
       </div>
     </div>
   </div>
   <footer>As formações são exemplos comuns usados por muitos times. Cada técnico pode adaptar. Feito para estudar e treinar. 🏐</footer>
 </div>
+<div class="toast" id="toast" role="status"></div>
 
 <script>
 const $=s=>document.querySelector(s);
@@ -105,6 +146,7 @@ const NS='http://www.w3.org/2000/svg';
 const el=(tag,attrs={},parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;};
 const R=(id,role,label,name)=>({id,role,label,name});
 const LIBERO=R('LIB','L','LIB','Líbero');
+const BEACH={roster:[R('J1','B1','J1','Jogador 1'),R('J2','B2','J2','Jogador 2')]};
 
 const SYSTEMS={
  '5-1':{libero:true,
@@ -120,12 +162,14 @@ const SYSTEMS={
   start:{1:'S1',2:'H1',3:'H2',4:'S2',5:'H3',6:'H4'},
   text:'2 levantadores e 4 atacantes. Quem levanta é o levantador que está na REDE; só 2 atacantes ficam na rede com ele. É o sistema mais simples, bom para quem está começando.'}
 };
-const COLORS={S:'#2dd4bf',OH:'#4f8cff',MB:'#a78bfa',OP:'#38bdf8',H:'#4f8cff',L:'#e2e8f0'};
+const COLORS={S:'#2dd4bf',OH:'#4f8cff',MB:'#a78bfa',OP:'#38bdf8',H:'#4f8cff',L:'#e2e8f0',B1:'#4f8cff',B2:'#2dd4bf'};
 const ORDER=[1,6,5,4,3,2];
 const slotAfter=(s0,rot)=>ORDER[(ORDER.indexOf(s0)+rot-1)%6];
 
-const S={sys:'5-1',rot:1,mode:'recv',libero:true,step:0,me:'MB1',showSlots:true,speed:1,playing:false,rally:0};
+const S={court:'indoor',sys:'5-1',rot:1,mode:'recv',who:'me',libero:true,step:0,me:'MB1',memo:{indoor:'MB1',beach:'J1'},showSlots:true,speed:1,playing:false,rally:0};
 let run=0,playTok=0,pl={};
+const isBeach=()=>S.court==='beach';
+const curRoster=()=>{if(isBeach())return BEACH.roster;const s=SYSTEMS[S.sys];return s.libero?[...s.roster,LIBERO]:s.roster;};
 
 function getLineup(sysKey,rot,lib){
  const sys=SYSTEMS[sysKey],list=[];
@@ -178,11 +222,45 @@ function receiverOf(list,setter){
  return back[0];
 }
 
+// ---- areia (metros: x 0..8, y 0=rede..8=fundo) ----
+// a = quem faz a ação principal (saca / passa), b = o parceiro
+const BF={
+ serve:{base:{a:[2.6,9.3],b:[3.6,1.0]},serve:{a:[2.6,9.3],b:[3.4,0.9]},def:{a:[3.8,5.6],b:[4.4,0.8]},atk:{a:[3.4,2.6],b:[4.4,1.0]}},
+ recv:{base:{a:[2.4,5.8],b:[5.4,3.0]},recv:{a:[2.6,5.8],b:[5.0,1.8]},atk:{a:[3.4,2.6],b:[5.0,1.4]}}
+};
+const BT={
+ serve:{base:['SACA','BLOQ'],serve:['SACA','BLOQ'],def:['DEF','BLOQ'],atk:['ATACA','LEVANTA']},
+ recv:{base:['PASSA','LEVANTA'],recv:['PASSA','LEVANTA'],atk:['ATACA','LEVANTA']}
+};
+const TAGNAME={SACA:'sacador',BLOQ:'bloqueador',DEF:'defensor',PASSA:'passador',LEVANTA:'levantador',ATACA:'atacante'};
+const BTIPS={
+ SACA:'Escolha o alvo antes de sacar: o jogador mais fraco na recepção ou o espaço entre os dois. Depois do saque, corra para o fundo para defender.',
+ BLOQ:'Fique perto da rede e feche uma parte da quadra (a paralela ou a diagonal) para o parceiro defender o resto. Combine isso com ele antes do saque.',
+ DEF:'Defenda o espaço que o bloqueio deixa aberto. Olhe o atacante e a direção do corpo dele para antecipar para onde a bola vai.',
+ PASSA:'Faça a manchete alta e perto da rede, em direção ao parceiro. Quanto melhor o passe, mais fácil é o levantamento.',
+ LEVANTA:'Fique perto da rede, de frente para a bola, e levante de um jeito que o parceiro consiga atacar com tempo.',
+ ATACA:'Depois do passe, corra para a rede e escolha: bola forte na diagonal, na paralela ou colocada longe do bloqueio.'
+};
+const BDESC={
+ serve:{
+  base:'Posição inicial: quem saca fica atrás da linha de fundo (em qualquer ponto da largura da quadra) e o parceiro espera junto da rede, pronto para bloquear.',
+  serve:'Saque: a bola sai de trás da linha de fundo para a quadra adversária. O parceiro olha a direção do saque e se prepara para bloquear.',
+  def:'Defesa: o adversário ataca. Quem está na rede bloqueia e quem sacou já voltou para o fundo para defender o espaço que o bloqueio deixa aberto.',
+  atk:'Contra-ataque: o defensor passa a bola para a rede, o parceiro levanta e o defensor corre para atacar. São os 3 toques: defesa, levantamento e ataque.'},
+ recv:{
+  base:'Posição inicial na recepção: um jogador (o passador) fica no fundo e o parceiro mais perto da rede, de onde vai levantar.',
+  recv:'Recepção: o adversário saca e a bola vai para o passador, que faz a manchete em direção ao parceiro perto da rede.',
+  atk:'Levantamento e ataque: o parceiro levanta a bola e o passador corre para a rede para atacar. São os 3 toques: passe, levantamento e ataque.'}
+};
 const STEPS={
  recv:[{kind:'base',name:'Rotação'},{kind:'recv',name:'Recepção'},{kind:'atk',name:'Ataque'}],
  serve:[{kind:'base',name:'Rotação'},{kind:'serve',name:'Saque'},{kind:'def',name:'Defesa'},{kind:'atk',name:'Contra-ataque'}]
 };
-const stepsOf=()=>STEPS[S.mode];
+const STEPSB={
+ recv:[{kind:'base',name:'Posição'},{kind:'recv',name:'Recepção'},{kind:'atk',name:'Levantamento e ataque'}],
+ serve:[{kind:'base',name:'Posição'},{kind:'serve',name:'Saque'},{kind:'def',name:'Defesa'},{kind:'atk',name:'Contra-ataque'}]
+};
+const stepsOf=()=>isBeach()?STEPSB[S.mode]:STEPS[S.mode];
 const DESC={
  base:'Posição de rotação: é a ordem oficial em quadra quando o árbitro autoriza o saque. Veja como todos giram quando você troca de rotação.',
  recv:'Recepção: o adversário saca. Cada um se posiciona respeitando a sobreposição. O levantador se esconde perto da rede, do lado direito, e os outros formam a recepção.',
@@ -200,21 +278,53 @@ const TIPS={
  L:{recv:'Você é o especialista em recepção. Receba a maior parte dos saques com passe alto e preciso para o levantador.',def:'Defenda no fundo e organize a defesa. Faça a bola chegar no levantador.',atk:'Cubra o ataque e fique pronto para defender o bloqueio adversário. O líbero não ataca acima da rede.'}
 };
 
+const INDOOR_RULES=`
+<details open><summary>Como o rodízio gira</summary><p>Sempre que o seu time <b>ganha o saque</b> (tirando do adversário), todo mundo gira uma posição no sentido horário: P2 → P1 → P6 → P5 → P4 → P3 → P2. Quem vai para P1 é quem saca.</p></details>
+<details><summary>Posições P1 a P6</summary><p>Na rede: P4 (esquerda), P3 (meio), P2 (direita). No fundo: P5 (esquerda), P6 (meio), P1 (direita, onde se saca).</p></details>
+<details><summary>Regra de sobreposição</summary><p>No momento do saque, quem está na frente não pode estar "ao lado errado" de quem está atrás dele. Ex.: o jogador de P2 deve estar à frente do de P1, e à direita do de P3. Depois do saque, todos podem correr livremente.</p></details>
+<details><summary>Líbero</summary><p>Especialista de defesa e recepção, com camisa de outra cor. Entra no lugar do central quando ele está no fundo (P6 e P5). Não ataca nem levanta acima da rede.</p></details>
+<details id="sysInfo" open><summary>Sobre este sistema</summary><p id="sysTxt"></p></details>`;
+const BEACH_RULES=`
+<details open><summary>O básico da areia</summary><p>Cada dupla tem só <b>2 jogadores</b> e não há substituições. A quadra de areia mede <b>16 x 8 m</b> (cada lado tem 8 x 8 m). A rede fica a 2,43 m (masculino) ou 2,24 m (feminino).</p></details>
+<details><summary>Pontuação</summary><p>Vence quem ganhar <b>2 sets</b>. Os sets 1 e 2 vão até <b>21 pontos</b>; o terceiro (desempate) vai até <b>15</b>. Em todos é preciso abrir 2 pontos de vantagem.</p></details>
+<details><summary>Troca de lado</summary><p>As duplas trocam de lado a cada <b>7 pontos</b> nos sets de 21 e a cada <b>5 pontos</b> no set de 15, para dividir sol e vento entre as duas.</p></details>
+<details><summary>Ordem de saque</summary><p>Quem ganha o ponto sacando <b>continua sacando</b>. Se a dupla adversária ganha o ponto, ela passa a sacar, e saca o jogador que <b>não sacou</b> da última vez dela. Assim os dois jogadores de cada dupla se alternam.</p></details>
+<details><summary>Toques e bloqueio</summary><p>Cada dupla tem no máximo <b>3 toques</b>. O bloqueio <b>conta</b> como um dos 3 toques. Ninguém toca a bola duas vezes seguidas, exceto durante ou logo depois do bloqueio.</p></details>
+<details><summary>Sem rodízio e sem posição fixa</summary><p>Na areia não existe rodízio de posições nem líbero. Os dois jogadores podem ficar onde quiserem; só o saque alterna.</p></details>
+<details><summary>Bloqueador e defensor (costume tático)</summary><p>Não é regra, é o jeito mais comum de jogar: quem sacou vai defender no fundo e o parceiro fica na rede para bloquear. Com a bola na mão da dupla, o defensor passa, o parceiro levanta e o defensor ataca. É o que a simulação mostra.</p></details>
+<p class="src">Fontes: regras básicas da FIVB, Olympics.com, Wilson e Toda Matéria.</p>`;
+
 // ---- SVG ----
 const svg=$('#court');
 const court=el('g',{},svg);
-el('rect',{x:-1.6,y:-4.6,width:12.2,height:16,fill:'#050816'},court);
-el('rect',{x:0,y:-3.6,width:9,height:3.6,fill:'#0b1030',opacity:.7,stroke:'#2a3a7a','stroke-width':.06,'stroke-dasharray':'.3 .2'},court);
-el('rect',{x:0,y:0,width:9,height:9,fill:'#0f1a42',stroke:'#3a56b8','stroke-width':.09},court);
-el('rect',{x:0,y:9,width:9,height:2,fill:'#0a1233',opacity:.7},court);
-el('line',{x1:0,y1:3,x2:9,y2:3,stroke:'#3a56b8','stroke-width':.06,'stroke-dasharray':'.35 .25'},court);
-[[4,1.5,1.5],[3,4.5,1.5],[2,7.5,1.5],[5,1.5,6.2],[6,4.5,6.2],[1,7.5,6.2]].forEach(([n,x,y])=>{
- const t=el('text',{x,y,'text-anchor':'middle','font-size':1.5,fill:'#1d2a66','font-weight':800},court);t.textContent=n;});
-el('line',{x1:-.4,y1:0,x2:9.4,y2:0,stroke:'#cfd6ff','stroke-width':.16},court);
-[-.4,9.4].forEach(x=>{el('line',{x1:x,y1:-.1,x2:x,y2:-.1,stroke:'#fff'},court);el('circle',{cx:x,cy:0,r:.2,fill:'#ef4444',stroke:'#fff','stroke-width':.06},court);});
-const t1=el('text',{x:4.5,y:-3.9,'text-anchor':'middle','font-size':.45,fill:'#5b6aa8'},court);t1.textContent='QUADRA ADVERSÁRIA';
-const t2=el('text',{x:4.5,y:10.6,'text-anchor':'middle','font-size':.45,fill:'#5b6aa8'},court);t2.textContent='ÁREA DE SAQUE';
-const t3=el('text',{x:4.5,y:-.5,'text-anchor':'middle','font-size':.4,fill:'#cfd6ff'},court);t3.textContent='REDE';
+function drawCourt(){
+ court.innerHTML='';
+ if(!isBeach()){
+  el('rect',{x:-1.6,y:-4.6,width:12.2,height:16,fill:'#050816'},court);
+  el('rect',{x:0,y:-3.6,width:9,height:3.6,fill:'#0b1030',opacity:.7,stroke:'#2a3a7a','stroke-width':.06,'stroke-dasharray':'.3 .2'},court);
+  el('rect',{x:0,y:0,width:9,height:9,fill:'#0f1a42',stroke:'#3a56b8','stroke-width':.09},court);
+  el('rect',{x:0,y:9,width:9,height:2,fill:'#0a1233',opacity:.7},court);
+  el('line',{x1:0,y1:3,x2:9,y2:3,stroke:'#3a56b8','stroke-width':.06,'stroke-dasharray':'.35 .25'},court);
+  [[4,1.5,1.5],[3,4.5,1.5],[2,7.5,1.5],[5,1.5,6.2],[6,4.5,6.2],[1,7.5,6.2]].forEach(([n,x,y])=>{
+   const t=el('text',{x,y,'text-anchor':'middle','font-size':1.5,fill:'#1d2a66','font-weight':800},court);t.textContent=n;});
+  el('line',{x1:-.4,y1:0,x2:9.4,y2:0,stroke:'#cfd6ff','stroke-width':.16},court);
+  [-.4,9.4].forEach(x=>{el('circle',{cx:x,cy:0,r:.2,fill:'#ef4444',stroke:'#fff','stroke-width':.06},court);});
+  const t1=el('text',{x:4.5,y:-3.9,'text-anchor':'middle','font-size':.45,fill:'#5b6aa8'},court);t1.textContent='QUADRA ADVERSÁRIA';
+  const t2=el('text',{x:4.5,y:10.6,'text-anchor':'middle','font-size':.45,fill:'#5b6aa8'},court);t2.textContent='ÁREA DE SAQUE';
+  const t3=el('text',{x:4.5,y:-.5,'text-anchor':'middle','font-size':.4,fill:'#cfd6ff'},court);t3.textContent='REDE';
+ }else{
+  el('rect',{x:-1.6,y:-4.6,width:11.2,height:15.2,fill:'#050816'},court);
+  el('rect',{x:0,y:-3.6,width:8,height:3.6,fill:'#1b1709',opacity:.7,stroke:'#6b5d33','stroke-width':.06,'stroke-dasharray':'.3 .2'},court);
+  el('rect',{x:0,y:0,width:8,height:8,fill:'#2e2814',stroke:'#e0cf9a','stroke-width':.09},court);
+  el('rect',{x:0,y:8,width:8,height:2.2,fill:'#1d1a0c',opacity:.7},court);
+  el('line',{x1:-.4,y1:0,x2:8.4,y2:0,stroke:'#cfd6ff','stroke-width':.16},court);
+  [-.4,8.4].forEach(x=>{el('circle',{cx:x,cy:0,r:.2,fill:'#ef4444',stroke:'#fff','stroke-width':.06},court);});
+  const t1=el('text',{x:4,y:-3.9,'text-anchor':'middle','font-size':.45,fill:'#8a7a47'},court);t1.textContent='QUADRA ADVERSÁRIA';
+  const t2=el('text',{x:4,y:10.3,'text-anchor':'middle','font-size':.45,fill:'#8a7a47'},court);t2.textContent='ÁREA DE SAQUE (atrás da linha de fundo)';
+  const t3=el('text',{x:4,y:-.5,'text-anchor':'middle','font-size':.4,fill:'#cfd6ff'},court);t3.textContent='REDE';
+  const t4=el('text',{x:4,y:4.4,'text-anchor':'middle','font-size':.55,fill:'#5c5128','font-weight':700},court);t4.textContent='8 x 8 m';
+ }
+}
 const trails=el('g',{},svg);
 const playersG=el('g',{id:'players'},svg);
 const oppG=el('g',{},svg);
@@ -223,17 +333,18 @@ const ballG=el('g',{},svg);
 function makeFigure(color){
  const g=el('g',{});
  const body=el('g',{},g);
+ el('circle',{r:1.1,fill:'transparent','pointer-events':'all'},body);
  const ring=el('circle',{r:.98,fill:'none',stroke:'#fbbf24','stroke-width':.14},body);ring.style.opacity=0;ring.setAttribute('class','ring');
  el('ellipse',{cx:0,cy:.25,rx:.72,ry:.32,fill:'rgba(0,0,0,.4)'},body);
  const sh=el('ellipse',{cx:0,cy:0,rx:.54,ry:.3,fill:color},body);
  const hd=el('circle',{cx:0,cy:-.1,r:.27,fill:color,stroke:'rgba(255,255,255,.7)','stroke-width':.05},body);
- const tx={'text-anchor':'middle','paint-order':'stroke',stroke:'#070b16','stroke-width':.12};
+ const tx={'text-anchor':'middle','paint-order':'stroke',stroke:'#070b16','stroke-width':.12,'pointer-events':'none'};
  const slotT=el('text',{...tx,y:-.62,'font-size':.36,fill:'#9fb0ff'},body);
  const lab=el('text',{...tx,y:1.05,'font-size':.46,'font-weight':700,fill:'#fff'},body);
  const meT=el('text',{...tx,y:-1.15,'font-size':.34,'font-weight':700,fill:'#fbbf24'},body);
  return {g,body,ring,sh,hd,slotT,lab,meT};
 }
-const opp=makeFigure('#f87171');oppG.appendChild(opp.g);opp.lab.textContent='';
+const opp=makeFigure('#f87171');oppG.appendChild(opp.g);opp.lab.textContent='';opp.g.style.pointerEvents='none';
 const oppT=el('text',{'text-anchor':'middle','font-size':.4,fill:'#fca5a5','paint-order':'stroke',stroke:'#070b16','stroke-width':.1},oppG);
 const ball={x:0,y:0,z:0,vis:false};
 const ballShadow=el('ellipse',{rx:.3,ry:.15,fill:'rgba(0,0,0,.5)'},ballG);
@@ -245,17 +356,20 @@ function drawBall(){
  ballBody.setAttribute('cy',-h);ballBody.setAttribute('r',.28+ball.z*.02);
  ballShadow.setAttribute('rx',.3-Math.min(.12,ball.z*.02));
 }
-function setOpp(kind){
+function setOpp(){
  oppG.style.display='';
- const pos=S.mode==='recv'?[2.0,-3.0]:[6.0,-1.6];
+ const pos=isBeach()?(S.mode==='recv'?[3.0,-3.0]:[4.0,-1.6]):(S.mode==='recv'?[2.0,-3.0]:[6.0,-1.6]);
  opp.g.setAttribute('transform',`translate(${pos[0]} ${pos[1]})`);
  oppT.setAttribute('x',pos[0]);oppT.setAttribute('y',pos[1]+1.0);
  oppT.textContent=S.mode==='recv'?'Sacador adv.':'Adversário';
 }
 function buildPlayers(){
  playersG.innerHTML='';pl={};
- const sys=SYSTEMS[S.sys];const all=[...sys.roster];if(sys.libero)all.push(LIBERO);
- all.forEach(r=>{const f=makeFigure(COLORS[r.role]);playersG.appendChild(f.g);f.x=4.5;f.y=4.5;f.vis=false;f.g.style.opacity=0;pl[r.id]=f;});
+ curRoster().forEach(r=>{
+  const f=makeFigure(COLORS[r.role]);
+  f.g.addEventListener('click',()=>pickMe(r.id));
+  playersG.appendChild(f.g);f.x=4.5;f.y=4.5;f.vis=false;f.g.style.opacity=0;f.g.style.pointerEvents='none';pl[r.id]=f;
+ });
 }
 function place(id,bob){const f=pl[id];f.g.setAttribute('transform',`translate(${f.x.toFixed(3)} ${f.y.toFixed(3)})`);f.body.setAttribute('transform',`translate(0 ${(bob||0).toFixed(3)})`);}
 
@@ -281,20 +395,24 @@ function fly(to,dur,arc,id){
  return anim(dur,t=>{ball.x=f[0]+(to[0]-f[0])*t;ball.y=f[1]+(to[1]-f[1])*t;ball.z=arc*4*t*(1-t);drawBall();},id);
 }
 function addTrail(a,b,c){el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:c||'#7dd3fc','stroke-width':.07,'stroke-dasharray':'.3 .25',opacity:.75},trails);}
-const wait=(ms,tok)=>new Promise(r=>setTimeout(r,ms));
+function addMark(pos){
+ [[-.4,-.4,.4,.4],[.4,-.4,-.4,.4]].forEach(([a,b,c,d])=>el('line',{x1:pos[0]+a,y1:pos[1]+b,x2:pos[0]+c,y2:pos[1]+d,stroke:'#e8ecff','stroke-width':.1,'stroke-linecap':'round'},trails));
+ el('circle',{cx:pos[0],cy:pos[1],r:1,fill:'none',stroke:'#e8ecff','stroke-width':.08,opacity:.6},trails);
+}
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
 
 function syncVisibility(list,form){
  const ids=new Set(list.map(p=>p.id));
  for(const id in pl){const f=pl[id];
   if(ids.has(id)){
    if(!f.vis){if(id==='LIB'){f.x=-1.3;f.y=form[id][1];}else{f.x=form[id][0];f.y=form[id][1];}place(id,0);}
-   f.vis=true;f.g.style.opacity=1;
-  }else{f.vis=false;f.g.style.opacity=0;}
+   f.vis=true;f.g.style.opacity=1;f.g.style.pointerEvents='';
+  }else{f.vis=false;f.g.style.opacity=0;f.g.style.pointerEvents='none';}
  }
 }
 function applyLook(list){
  list.forEach(p=>{const f=pl[p.id];
-  f.lab.textContent=p.label;f.slotT.textContent=S.showSlots?'P'+p.slot:'';
+  f.lab.textContent=p.label;f.slotT.textContent=S.showSlots?(p.tag||('P'+p.slot)):'';
   const me=p.id===S.me,seat=p.replaces===S.me;
   f.ring.style.opacity=me?1:(seat?.45:0);
   f.meT.textContent=me?'VOCÊ':(seat?'SEU LUGAR':'');
@@ -302,13 +420,68 @@ function applyLook(list){
 }
 function setNote(t){const n=$('#note');if(n)n.textContent=t;}
 
-async function goStep(i,instant){
- const my=++run;S.step=i;
+// ---- estado, link e memória ----
+function stateToHash(){return `c=${S.court}&s=${S.sys}&r=${S.rot}&m=${S.mode}&me=${S.me}&w=${S.who}&l=${S.libero?1:0}&p=${S.showSlots?1:0}`;}
+function saveState(){
+ const h=stateToHash();
+ try{history.replaceState(null,'','#'+h);}catch(e){}
+ try{localStorage.setItem('rv:last',h);}catch(e){}
+}
+function loadState(str){
+ const q=new URLSearchParams(String(str||'').replace(/^#/,''));
+ const c=q.get('c');if(c==='indoor'||c==='beach')S.court=c;
+ const s=q.get('s');if(['5-1','4-2','6-2'].includes(s))S.sys=s;
+ const r=+q.get('r');if(r>=1&&r<=6)S.rot=r;
+ const m=q.get('m');if(m==='recv'||m==='serve')S.mode=m;
+ const w=q.get('w');if(w==='me'||w==='partner')S.who=w;
+ if(q.get('l')!==null)S.libero=q.get('l')==='1';
+ if(q.get('p')!==null)S.showSlots=q.get('p')==='1';
+ const me=q.get('me');
+ const ros=curRoster();
+ if(ros.some(x=>x.id===me))S.me=me;
+ else S.me=isBeach()?'J1':(ros.some(x=>x.id==='MB1')?'MB1':ros[0].id);
+ S.memo[S.court]=S.me;
+}
+let toastT=null;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
+async function share(){
+ saveState();
+ const url=location.href.split('#')[0]+'#'+stateToHash();
+ try{if(navigator.share){await navigator.share({title:'Rodízio de Vôlei',text:'Veja esta rotação no Rodízio de Vôlei',url});return;}}
+ catch(e){if(e&&e.name==='AbortError')return;}
+ try{await navigator.clipboard.writeText(url);toast('Link copiado!');}
+ catch(e){try{prompt('Copie o link:',url);}catch(_){}}
+}
+
+// ---- quem sou eu ----
+function beachActors(){const other=S.me==='J1'?'J2':'J1';const a=S.who==='me'?S.me:other;return {a,b:a==='J1'?'J2':'J1'};}
+function beachList(kind){
+ const {a}=beachActors();const tg=BT[S.mode][kind];
+ return BEACH.roster.map(r=>({...r,tag:r.id===a?tg[0]:tg[1],slot:0}));
+}
+function currentList(){return isBeach()?beachList(stepsOf()[S.step].kind):getLineup(S.sys,S.rot,S.libero);}
+function refreshInfo(){
+ const n=$('#note'),keep=n?n.textContent:'';
+ const list=currentList(),kind=stepsOf()[S.step].kind;
+ applyLook(list);
+ if(isBeach())renderAllB(list,kind);else renderAll(list,activeSetter(S.sys,list),kind);
+ setNote(keep);
+}
+function pickMe(id){
+ if(!pl[id])return;
+ if(isBeach()){const {a}=beachActors();S.who=(a===id)?'me':'partner';}
+ S.me=id;S.memo[S.court]=id;
+ refreshInfo();saveState();
+}
+
+// ---- passos: quadra ----
+async function goStepI(i,instant){
+ const my=++run;S.step=i;saveState();
  const steps=stepsOf(),kind=steps[i].kind;
  const list=getLineup(S.sys,S.rot,S.libero),setter=activeSetter(S.sys,list);
  const form=formationFor(kind,list,setter);
  trails.innerHTML='';ball.vis=false;drawBall();
- syncVisibility(list,form);applyLook(list);setOpp(kind);
+ syncVisibility(list,form);applyLook(list);setOpp();
  renderAll(list,setter,kind);
  const D=v=>instant?0:v/S.speed;
  const rec=receiverOf(list,setter);
@@ -317,7 +490,7 @@ async function goStep(i,instant){
   if(instant)return true;
   if(kind==='recv'){
    ball.vis=true;ball.x=2.0;ball.y=-3.0;drawBall();
-   const to=form[rec.id];addTrail([2.0,-3.0],to,'#fca5a5');
+   const to=form[rec.id];addTrail([2.0,-3.0],to,'#fca5a5');addMark(to);
    if(!await fly(to,D(1200),6.5,my))return false;
    setNote('Saque recebido por '+rec.name+' (P'+rec.slot+'). Agora passa para o levantador.');
   }
@@ -330,7 +503,7 @@ async function goStep(i,instant){
   }
   if(kind==='def'){
    const to=form[rec.id];ball.vis=true;ball.x=6.0;ball.y=-1.6;drawBall();
-   addTrail([6.0,-1.6],to,'#fca5a5');
+   addTrail([6.0,-1.6],to,'#fca5a5');addMark(to);
    if(!await fly(to,D(950),3.5,my))return false;
    setNote('Bola defendida por '+rec.name+' (P'+rec.slot+').');
   }
@@ -357,6 +530,60 @@ async function goStep(i,instant){
  return true;
 }
 
+// ---- passos: areia ----
+async function goStepB(i,instant){
+ const my=++run;S.step=i;saveState();
+ const kind=stepsOf()[i].kind,{a,b}=beachActors(),F=BF[S.mode][kind];
+ const names={J1:'Jogador 1',J2:'Jogador 2'};
+ const form={[a]:F.a.slice(),[b]:F.b.slice()};
+ const list=beachList(kind);
+ trails.innerHTML='';ball.vis=false;drawBall();
+ syncVisibility(list,form);applyLook(list);setOpp();
+ renderAllB(list,kind);
+ const D=v=>instant?0:v/S.speed;
+ const opS=S.mode==='recv'?[3.0,-3.0]:[4.0,-1.6];
+ if(kind!=='atk'){
+  if(!await tweenPlayers(form,D(900),my))return false;
+  if(instant)return true;
+  if(kind==='recv'){
+   ball.vis=true;ball.x=opS[0];ball.y=opS[1];drawBall();
+   addTrail(opS,form[a],'#fca5a5');addMark(form[a]);
+   if(!await fly(form[a],D(1200),6.5,my))return false;
+   setNote(names[a]+' recebeu o saque e vai passar para '+names[b]+'.');
+  }
+  if(kind==='serve'){
+   const from=form[a],to=[4.0,-2.6];
+   ball.vis=true;ball.x=from[0];ball.y=from[1]-.5;drawBall();
+   addTrail(from,to,'#7dd3fc');
+   if(!await fly(to,D(1200),7,my))return false;
+   setNote(names[a]+' sacou e volta para o fundo para defender. '+names[b]+' fica na rede para bloquear.');
+  }
+  if(kind==='def'){
+   ball.vis=true;ball.x=opS[0];ball.y=opS[1];drawBall();
+   addTrail(opS,form[a],'#fca5a5');addMark(form[a]);
+   if(!await fly(form[a],D(950),3.5,my))return false;
+   setNote('Bola defendida por '+names[a]+'.');
+  }
+  return true;
+ }
+ const start=(S.mode==='recv'?BF.recv.recv:BF.serve.def).a;
+ ball.vis=!instant;ball.x=start[0];ball.y=start[1];ball.z=0;drawBall();
+ if(instant)return await tweenPlayers(form,0,my);
+ const [t]=await Promise.all([tweenPlayers(form,D(900),my),fly(F.b,D(850),3.5,my)]);
+ if(!t||my!==run)return false;
+ addTrail(start,F.b);
+ const hit=[F.a[0],1.2];
+ const [h]=await Promise.all([fly(hit,D(750),3.2,my),tweenOne(a,hit,D(750),my)]);
+ if(!h||my!==run)return false;
+ addTrail(F.b,hit);
+ const end=[Math.max(.6,Math.min(7.4,8-hit[0])),-2.6];
+ addTrail(hit,end,'#fbbf24');
+ if(!await fly(end,D(450),1.2,my))return false;
+ setNote(names[b]+' levantou e '+names[a]+' atacou. Toque ▶ Simular para ver de novo!');
+ return true;
+}
+function goStep(i,instant){return isBeach()?goStepB(i,instant):goStepI(i,instant);}
+
 // ---- interface ----
 function segment(root,items,get,set){
  root.innerHTML='';
@@ -364,6 +591,14 @@ function segment(root,items,get,set){
  root._get=get;
 }
 function refreshSeg(root){[...root.children].forEach(b=>b.classList.toggle('on',String(root._get())===b.dataset.v));}
+function refreshSegs(){
+ ['#tabs','#segSys','#segRot','#segMode','#segWho'].forEach(s=>refreshSeg($(s)));
+ [...$('#chips').children].forEach(b=>b.classList.toggle('on',b.dataset.v===S.me));
+}
+function renderSteps(){
+ const st=$('#steps');st.innerHTML='';
+ stepsOf().forEach((s,i)=>{const b=document.createElement('button');b.textContent=(i+1)+'. '+s.name;b.className=i===S.step?'on':'';b.onclick=()=>{stopPlay();goStep(i);};st.appendChild(b);});
+}
 
 function stopPlay(){playTok++;S.playing=false;$('#play').textContent='▶ Simular';}
 async function playAll(){
@@ -394,10 +629,7 @@ function meInfo(list){
  return {name:meR.name,line,table};
 }
 function renderAll(list,setter,kind){
- // passos
- const st=$('#steps');st.innerHTML='';
- stepsOf().forEach((s,i)=>{const b=document.createElement('button');b.textContent=(i+1)+'. '+s.name;b.className=i===S.step?'on':'';b.onclick=()=>{stopPlay();goStep(i);};st.appendChild(b);});
- // info
+ renderSteps();
  const me=meInfo(list);
  const meR=SYSTEMS[S.sys].roster.find(r=>r.id===S.me);
  const role=S.me==='LIB'?'L':meR.role;
@@ -408,7 +640,6 @@ function renderAll(list,setter,kind){
  <h3>Você: ${me.name}</h3><p style="margin:4px 0">${me.line}</p>
  <div class="tip">${baseTip||tip}</div>
  ${me.table?'<div class="lbl">Suas posições em cada rotação</div><div class="rots">'+me.table+'</div>':''}`;
- // minis
  const mn=$('#minis');mn.innerHTML='';
  for(let r=1;r<=6;r++){
   const l=getLineup(S.sys,r,S.libero);
@@ -417,31 +648,77 @@ function renderAll(list,setter,kind){
   d.innerHTML=`<b>Rotação ${r}</b><div class="net"></div><div class="g">${cells}</div>`;
   d.onclick=()=>setRot(r);mn.appendChild(d);
  }
- $('#sysTxt').textContent=SYSTEMS[S.sys].text;
- ['#segSys','#segRot','#segMode'].forEach(s=>refreshSeg($(s)));
- [...$('#chips').children].forEach(b=>b.classList.toggle('on',b.dataset.v===S.me));
+ const st=$('#sysTxt');if(st)st.textContent=SYSTEMS[S.sys].text;
  $('#libWrap').style.display=SYSTEMS[S.sys].libero?'':'none';
+ refreshSegs();
+}
+function renderAllB(list,kind){
+ renderSteps();
+ const meP=list.find(p=>p.id===S.me),par=list.find(p=>p.id!==S.me);
+ $('#info').innerHTML=`<h2>Passo ${S.step+1}/${stepsOf().length} · ${stepsOf()[S.step].name}</h2><p style="margin:4px 0">${BDESC[S.mode][kind]}</p><div class="note" id="note"></div>
+ <h3>Você: ${meP.name}</h3><p style="margin:4px 0">Neste passo você é o <b>${TAGNAME[meP.tag]}</b> e o seu parceiro é o <b>${TAGNAME[par.tag]}</b>.</p>
+ <div class="tip">${BTIPS[meP.tag]}</div>`;
+ $('#whoLbl').textContent=S.mode==='serve'?'Quem saca':'Quem recebe (passa)';
+ refreshSegs();
 }
 function renderChips(){
- const sys=SYSTEMS[S.sys];const items=sys.roster.map(r=>[r.id,r.name]);if(sys.libero)items.push(['LIB','Líbero']);
- segment($('#chips'),items,()=>S.me,v=>{S.me=v;const list=getLineup(S.sys,S.rot,S.libero);applyLook(list);renderAll(list,activeSetter(S.sys,list),stepsOf()[S.step].kind);});
+ segment($('#chips'),curRoster().map(r=>[r.id,r.name]),()=>S.me,v=>pickMe(v));
  [...$('#chips').children].forEach(b=>b.classList.add('gold'));
 }
-function setSys(v){stopPlay();S.sys=v;const sys=SYSTEMS[v];if(!sys.roster.find(r=>r.id===S.me)&&!(S.me==='LIB'&&sys.libero))S.me=sys.roster[0].id;buildPlayers();renderChips();goStep(0,true);}
+function renderRules(){
+ $('#rulesTitle').textContent=isBeach()?'Regras da areia (para quem está começando)':'Regrinhas para iniciantes';
+ $('#rulesBody').innerHTML=isBeach()?BEACH_RULES:INDOOR_RULES;
+}
+function buildModeSeg(){
+ segment($('#segMode'),isBeach()?[['recv','Minha dupla recebe'],['serve','Minha dupla saca']]:[['recv','Eu recebo o saque'],['serve','Eu saco']],()=>S.mode,setMode);
+}
+function applyCourtUI(){
+ const b=isBeach();
+ svg.setAttribute('viewBox',b?'-1.6 -4.6 11.2 15.2':'-1.6 -4.6 12.2 16');
+ svg.setAttribute('aria-label',b?'Quadra de vôlei de praia vista de cima':'Quadra de vôlei vista de cima');
+ drawCourt();
+ $('#grpSys').style.display=b?'none':'';
+ $('#grpRot').style.display=b?'none':'';
+ $('#grpWho').style.display=b?'':'none';
+ $('#minisCard').style.display=b?'none':'';
+ $('#libWrap').style.display=(!b&&SYSTEMS[S.sys].libero)?'':'none';
+ $('#chkSlotsTxt').textContent=b?'Mostrar funções (SACA, BLOQ, DEF…)':'Mostrar posições (P1 a P6)';
+ buildModeSeg();renderRules();
+}
+function setCourt(c){
+ if(c===S.court)return;
+ stopPlay();S.memo[S.court]=S.me;S.court=c;S.me=S.memo[c];
+ if(!curRoster().some(x=>x.id===S.me))S.me=curRoster()[0].id;
+ S.step=0;applyCourtUI();buildPlayers();renderChips();goStep(0,true);
+}
+function setSys(v){
+ stopPlay();S.sys=v;const sys=SYSTEMS[v];
+ if(!sys.roster.find(r=>r.id===S.me)&&!(S.me==='LIB'&&sys.libero))S.me=sys.roster[0].id;
+ S.memo.indoor=S.me;buildPlayers();renderChips();goStep(0,true);
+}
 function setRot(v){stopPlay();S.rot=+v;goStep(0);}
 function setMode(v){stopPlay();S.mode=v;goStep(0);}
+function setWho(v){stopPlay();S.who=v;goStep(0);}
 
+segment($('#tabs'),[['indoor','🏐 Quadra (6x6)'],['beach','🏖️ Areia (2x2)']],()=>S.court,setCourt);
 segment($('#segSys'),[['5-1','5-1'],['4-2','4-2'],['6-2','6-2']],()=>S.sys,setSys);
 segment($('#segRot'),[1,2,3,4,5,6].map(n=>[n,'R'+n]),()=>S.rot,setRot);
-segment($('#segMode'),[['recv','Eu recebo o saque'],['serve','Eu saco']],()=>S.mode,setMode);
+segment($('#segWho'),[['me','Eu'],['partner','Meu parceiro']],()=>S.who,setWho);
 $('#chkLib').onchange=e=>{stopPlay();S.libero=e.target.checked;goStep(0);};
-$('#chkSlots').onchange=e=>{S.showSlots=e.target.checked;const l=getLineup(S.sys,S.rot,S.libero);applyLook(l);};
+$('#chkSlots').onchange=e=>{S.showSlots=e.target.checked;applyLook(currentList());saveState();};
 $('#speed').oninput=e=>{S.speed=+e.target.value;};
 $('#prev').onclick=()=>{stopPlay();goStep(Math.max(0,S.step-1));};
 $('#next').onclick=()=>{stopPlay();goStep(Math.min(stepsOf().length-1,S.step+1));};
 $('#play').onclick=()=>{if(S.playing){stopPlay();run++;}else playAll();};
+$('#share').onclick=share;
 
-buildPlayers();renderChips();goStep(0,true);
+(function boot(){
+ let init='';
+ try{init=location.hash.length>1?location.hash:(localStorage.getItem('rv:last')||'');}catch(e){}
+ try{loadState(init);}catch(e){}
+ $('#chkLib').checked=S.libero;$('#chkSlots').checked=S.showSlots;
+ applyCourtUI();buildPlayers();renderChips();goStep(0,true);
+})();
 </script>
 </body>
 </html>
