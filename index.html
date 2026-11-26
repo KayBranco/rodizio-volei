@@ -69,6 +69,13 @@ footer{color:var(--mut);font-size:12px;margin-top:18px}
 #players g{transition:opacity .35s}
 #players>g{cursor:pointer}
 .ring{transition:opacity .3s}
+button:disabled{opacity:.5;cursor:default}
+.score{display:flex;gap:18px;align-items:center;justify-content:center;font-size:36px;font-weight:800;margin:10px 0}
+.score small{display:block;font-size:12px;color:var(--mut);font-weight:600;text-align:center}
+.score .srv{color:var(--gold)}
+.score div{text-align:center}
+.log{font-size:12px;color:var(--mut);max-height:130px;overflow:auto;margin-top:6px}
+.log div{padding:3px 0;border-bottom:1px solid var(--line)}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--blue);padding:8px 14px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:10;font-size:14px}
 .toast.show{opacity:1}
 </style>
@@ -91,7 +98,7 @@ footer{color:var(--mut);font-size:12px;margin-top:18px}
       <div class="steps" id="steps"></div>
       <div class="transport">
         <button id="prev" aria-label="Passo anterior">◀</button>
-        <button id="play" class="play">▶ Simular</button>
+        <button id="play" class="play" title="Atalho: barra de espaço">▶ Simular</button>
         <button id="next" aria-label="Próximo passo">▶</button>
         <label style="font-size:12px;color:var(--mut)">Velocidade <input type="range" id="speed" min="0.5" max="2" step="0.25" value="1"></label>
       </div>
@@ -114,6 +121,22 @@ footer{color:var(--mut);font-size:12px;margin-top:18px}
         <h2>Todas as rotações</h2>
         <p class="sub" style="margin-bottom:8px">Toque numa rotação para ver. Quadra vista de trás: rede em cima.</p>
         <div class="minis" id="minis"></div>
+      </div>
+
+      <div class="card" id="scoreCard">
+        <h2>Placar e ordem de saque</h2>
+        <p class="sub" style="margin-bottom:8px">Marque os pontos e veja quem saca e quando trocar de lado. O primeiro sacador de cada dupla é definido antes do set.</p>
+        <div class="lbl" style="margin-top:0">Set</div><div class="row" id="segSet"></div>
+        <div class="lbl">Quem saca primeiro</div><div class="row" id="segFirst"></div>
+        <div class="score" id="scoreBox"></div>
+        <div class="row">
+          <button id="ptUs" class="gold on">+ Ponto nosso</button>
+          <button id="ptThem">+ Ponto deles</button>
+          <button id="ptUndo">Desfazer</button>
+          <button id="ptReset">Zerar</button>
+        </div>
+        <div class="tip" id="scoreMsg"></div>
+        <div class="log" id="scoreLog"></div>
       </div>
 
       <div class="card">
@@ -681,6 +704,7 @@ function applyCourtUI(){
  $('#grpRot').style.display=b?'none':'';
  $('#grpWho').style.display=b?'':'none';
  $('#minisCard').style.display=b?'none':'';
+ $('#scoreCard').style.display=b?'':'none';
  $('#libWrap').style.display=(!b&&SYSTEMS[S.sys].libero)?'':'none';
  $('#chkSlotsTxt').textContent=b?'Mostrar funções (SACA, BLOQ, DEF…)':'Mostrar posições (P1 a P6)';
  buildModeSeg();renderRules();
@@ -711,6 +735,49 @@ $('#prev').onclick=()=>{stopPlay();goStep(Math.max(0,S.step-1));};
 $('#next').onclick=()=>{stopPlay();goStep(Math.min(stepsOf().length-1,S.step+1));};
 $('#play').onclick=()=>{if(S.playing){stopPlay();run++;}else playAll();};
 $('#share').onclick=share;
+
+// ---- placar e ordem de saque (areia) ----
+const SCN={us:['Jogador 1','Jogador 2'],them:['Adversário 1','Adversário 2']};
+const SC={target:21,first:'us',us:0,them:0,srv:'us',idx:{us:0,them:null},log:[],hist:[],over:false};
+function scReset(){
+ SC.us=0;SC.them=0;SC.srv=SC.first;SC.idx={us:null,them:null};SC.idx[SC.srv]=0;
+ SC.log=['Início do set: saca '+SCN[SC.srv][0]+' ('+(SC.srv==='us'?'nossa dupla':'dupla adversária')+').'];
+ SC.hist=[];SC.over=false;
+}
+function scNext(team){return SC.srv===team?SC.idx[team]:(SC.idx[team]===null?0:1-SC.idx[team]);}
+function scPoint(team){
+ if(SC.over)return;
+ SC.hist.push(JSON.stringify({us:SC.us,them:SC.them,srv:SC.srv,idx:SC.idx,log:SC.log,over:SC.over}));
+ const idx=scNext(team),cont=SC.srv===team;
+ let msg=(team==='us'?'Ponto nosso':'Ponto deles')+' ('+(SC.us+(team==='us'?1:0))+' x '+(SC.them+(team==='them'?1:0))+'). ';
+ msg+=(cont?'Quem sacou continua: ':'Troca o saque: ')+SCN[team][idx]+'.';
+ SC[team]++;SC.srv=team;SC.idx[team]=idx;
+ const total=SC.us+SC.them,every=SC.target===21?7:5;
+ if(Math.max(SC.us,SC.them)>=SC.target&&Math.abs(SC.us-SC.them)>=2){SC.over=true;msg+=' Fim do set!';}
+ else if(total%every===0)msg+=' 🔄 Troquem de lado!';
+ SC.log=[msg,...SC.log].slice(0,10);
+ scRender();
+}
+function scUndo(){const h=SC.hist.pop();if(!h)return;Object.assign(SC,JSON.parse(h));scRender();}
+function scRender(){
+ const t=SC.srv;
+ $('#scoreBox').innerHTML=`<div class="${t==='us'?'srv':''}"><small>Nós</small>${SC.us}</div><div>x</div><div class="${t==='them'?'srv':''}"><small>Eles</small>${SC.them}</div>`;
+ const next=SC.over?'':`<br>Se ganharmos o próximo ponto, saca <b>${SCN.us[scNext('us')]}</b>. Se eles ganharem, saca <b>${SCN.them[scNext('them')]}</b>.`;
+ $('#scoreMsg').innerHTML=(SC.over?'<b>Set encerrado.</b> Toque em Zerar para começar outro.':`Saca agora: <b>${SCN[t][SC.idx[t]]}</b> (${t==='us'?'nossa dupla':'dupla adversária'}).`)+next;
+ $('#scoreLog').innerHTML=SC.log.map(x=>`<div>${x}</div>`).join('');
+ refreshSeg($('#segSet'));refreshSeg($('#segFirst'));
+ $('#ptUs').disabled=SC.over;$('#ptThem').disabled=SC.over;
+}
+segment($('#segSet'),[['21','Sets 1 e 2 (até 21)'],['15','Set 3 (até 15)']],()=>SC.target,v=>{SC.target=+v;scReset();scRender();});
+segment($('#segFirst'),[['us','Nossa dupla'],['them','Dupla adversária']],()=>SC.first,v=>{SC.first=v;scReset();scRender();});
+$('#ptUs').onclick=()=>scPoint('us');
+$('#ptThem').onclick=()=>scPoint('them');
+$('#ptUndo').onclick=scUndo;
+$('#ptReset').onclick=()=>{scReset();scRender();};
+scReset();scRender();
+document.addEventListener('keydown',e=>{
+ if(e.code==='Space'&&e.target===document.body){e.preventDefault();$('#play').click();}
+});
 
 (function boot(){
  let init='';
