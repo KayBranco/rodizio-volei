@@ -12,4 +12,17 @@ D.createMatch({mode:'jogo',modality:'quadra',seasonId:D.activeSeason().id});ok(D
 ok(D.deleteSeason(D.activeSeason().id)!==null,'não exclui única temporada');
 const bk=D.exportJSON();D.wipe();ok(D.D().teams.length===0,'wipe');ok(D.importJSON(bk)===null&&D.D().teams.length===2&&D.D().matches.length===1,'import backup');ok(D.importJSON('lixo')!==null,'import inválido');
 D.deleteTeam(t.id);ok(D.D().athletes.length===0,'excluir equipe remove atletas');
+// importação em lote (quadra e areia)
+const tQuad={name:'Vôlei Quadra',modality:'quadra',color:'#10b981'};D.saveTeam(tQuad);
+const parsedQ=D.parseAthleteLines('1. João Silva\n2 - Pedro Santos\n10 Lucas #10\n• Ana',tQuad.id);
+ok(parsedQ.length===4,'parse 4 linhas');
+ok(parsedQ[0].name==='João Silva'&&parsedQ[0].number===1&&parsedQ[0].status==='titular','parse num prefixo');
+ok(parsedQ[2].number===10,'parse camisa explícita');
+const resQ=D.saveAthletesBatch(tQuad.id,parsedQ);ok(!resQ.error&&resQ.count===4,'salva lote quadra');
+ok(D.teamAthletes(tQuad.id).length===4,'4 atletas na quadra');
+const tAreia={name:'Dupla Areia',modality:'areia',color:'#f59e0b'};D.saveTeam(tAreia);
+const parsedA=D.parseAthleteLines('Carlos, Bruno, Reserva',tAreia.id);
+ok(parsedA.length===3&&parsedA[0].role==='Universal'&&parsedA[0].status==='titular'&&parsedA[2].status==='reserva','areia auto universal e 2 titulares');
+const resA=D.saveAthletesBatch(tAreia.id,parsedA);ok(!resA.error&&resA.count===3,'salva lote areia');
+D.deleteTeam(tQuad.id);D.deleteTeam(tAreia.id);
 console.log(n+' verificações',process.exitCode?'COM FALHAS':'OK');

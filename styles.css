@@ -97,3 +97,22 @@ select.role-edit-btn:focus-visible{outline:2px solid var(--blue);outline-offset:
   .court-pick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .court-pick-grid.beach{grid-template-columns:1fr}
 }
+
+/* Modal e grade de importação em lote de atletas */
+.modal.wide{max-width:720px}
+.imp-area{width:100%;min-height:112px;background:#0a1028;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;color:var(--txt);resize:vertical}
+.imp-area:focus{outline:2px solid var(--blue);outline-offset:1px}
+.imp-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:10px 0 8px}
+.imp-list{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow-y:auto;padding-right:2px}
+.imp-row{display:grid;grid-template-columns:28px 66px minmax(120px,1.3fr) minmax(130px,1fr) minmax(105px,.8fr);gap:8px;align-items:center;padding:8px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px}
+.imp-row.off{opacity:.48}
+.imp-row.conflict{border-color:var(--red);background:#26121b}
+.imp-row input[type=checkbox]{width:18px;height:18px;min-height:0;margin:0;cursor:pointer}
+.imp-row input,.imp-row select{min-height:36px;padding:6px 8px;font-size:14px}
+.imp-tag{font-size:11px;color:var(--gold);margin-top:2px}
+.imp-tag.err{color:var(--red)}
+@media(max-width:640px){
+  .imp-row{grid-template-columns:24px 62px 1fr;gap:6px}
+  .imp-row .imp-role{grid-column:2 / 4}
+  .imp-row .imp-stat{grid-column:2 / 4}
+}

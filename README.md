@@ -6,7 +6,7 @@ Plataforma web para **treinar, jogar, gerenciar equipes e aprender** os sistemas
 
 - **Modo Treino**: selecione a modalidade (quadra ou areia), sua equipe, o adversário e os atletas em quadra para registrar fundamentos em tempo real (saques, ataques, bloqueios, recepções, defesas, assistências e pontos) e controlar o placar diretamente pelos botões `+` e `−`.
 - **Modo Jogo**: controle completo de partida com placar interativo (`+` e `−` por equipe), sets, acompanhamento de rodízio oficial (sem rotação no primeiro *side-out* do time que inicia recebendo), posse de saque, substituições, histórico de eventos, estatísticas individuais por atleta e opção de desfazer ações.
-- **Minhas Equipes / Atletas**: cadastro e gestão de equipes (nome, modalidade e cor) e elenco (nome, número da camisa, função tática e status de titular/reserva).
+- **Minhas Equipes / Atletas**: cadastro e gestão de equipes (nome, modalidade e cor), cadastro individual e **importação em lote de listas de atletas** (com detecção automática de nomes/camisas e preenchimento rápido de funções para quadra e areia).
 - **Estatísticas e Temporadas**: histórico completo de partidas, métricas consolidadas por atleta ou equipe, comparação de desempenho entre períodos e suporte a múltiplas temporadas.
 - **Tutorial e Aprendizado (`tutorial.html`)**: simulador animado e interativo para visualizar a movimentação dos jogadores na quadra em diferentes sistemas táticos.
 

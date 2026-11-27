@@ -75,6 +75,120 @@
   }
   const teamAthletes = tid => D().athletes.filter(a => a.teamId === tid).sort((x, y) => x.number - y.number);
 
+  // ---- importação em lote de atletas ----
+  function parseAthleteLines(raw, teamId) {
+    const team = find('teams', teamId);
+    const isBeach = team && team.modality === 'areia';
+    const existing = team ? teamAthletes(teamId) : [];
+    const usedNums = new Set(existing.map(a => Number(a.number)));
+    const existingNames = new Set(existing.map(a => a.name.trim().toLowerCase()));
+    const startersNeed = isBeach ? 2 : 6;
+    let currentStarters = existing.filter(a => a.status === 'titular').length;
+
+    const allocNextNum = () => {
+      let n = 1;
+      while (usedNums.has(n) && n < 99) n++;
+      if (n <= 99) usedNums.add(n);
+      return n <= 99 ? n : 1;
+    };
+
+    // Separa por quebra de linha ou ponto-e-vírgula (ou vírgula quando em linha única)
+    const lines = String(raw || '').split(/\r?\n|;/).flatMap(part => {
+      const trimmed = part.trim();
+      if (!trimmed) return [];
+      if (!String(raw || '').includes('\n') && trimmed.includes(',')) return trimmed.split(',');
+      return [trimmed];
+    });
+
+    const seenInBatch = new Set();
+    const items = [];
+    for (const piece of lines) {
+      let line = piece.trim();
+      if (!line) continue;
+      // Remove marcadores de lista comuns: "• ", "- ", "* ", "[x] ", "(1) "
+      line = line.replace(/^(?:\[[^\]]*\]|[•*\-–—]+)\s*/, '').trim();
+      if (!line) continue;
+
+      let explicitNum = null;
+      // Caso 1: "10 - João", "10. João", "10) João", "#10 João", "10: João"
+      let m = line.match(/^#?(\d{1,2})\s*(?:[.\-–—):]|\s+)\s*(.+)$/);
+      if (m) {
+        explicitNum = Number(m[1]);
+        line = m[2].trim();
+      } else {
+        // Caso 2: "João #10" ou "João - 10" ou "João (10)"
+        m = line.match(/^(.+?)\s*(?:#|[-–—]\s*|\()(\d{1,2})\)?$/);
+        if (m && m[1].trim().length >= 2) {
+          line = m[1].trim();
+          explicitNum = Number(m[2]);
+        }
+      }
+
+      const name = line.slice(0, 30).trim();
+      if (!name) continue;
+      const lower = name.toLowerCase();
+      const dupTeam = existingNames.has(lower);
+      const dupBatch = seenInBatch.has(lower);
+      seenInBatch.add(lower);
+
+      let num;
+      if (explicitNum !== null && Number.isInteger(explicitNum) && explicitNum >= 0 && explicitNum <= 99 && !usedNums.has(explicitNum)) {
+        num = explicitNum;
+        usedNums.add(num);
+      } else {
+        num = allocNextNum();
+      }
+
+      const status = currentStarters < startersNeed ? 'titular' : 'reserva';
+      if (status === 'titular') currentStarters++;
+
+      items.push({
+        selected: true,
+        name,
+        number: num,
+        role: isBeach ? 'Universal' : 'Ponteiro',
+        status,
+        dupTeam,
+        dupBatch
+      });
+    }
+    return items;
+  }
+
+  function saveAthletesBatch(teamId, rows) {
+    const team = find('teams', teamId);
+    if (!team) return { error: 'Equipe inválida.' };
+    const selected = (rows || []).filter(r => r && r.selected);
+    if (!selected.length) return { error: 'Selecione pelo menos um atleta para importar.' };
+
+    const existingNums = new Set(teamAthletes(teamId).map(a => Number(a.number)));
+    const batchNums = new Set();
+    for (let i = 0; i < selected.length; i++) {
+      const r = selected[i];
+      if (!r.name || !r.name.trim()) return { error: 'Preencha o nome de todos os atletas selecionados.' };
+      const num = Number(r.number);
+      if (!Number.isInteger(num) || num < 0 || num > 99) return { error: r.name.trim() + ': número da camisa deve ser de 0 a 99.' };
+      if (existingNums.has(num)) return { error: 'O número ' + num + ' já está em uso nesta equipe.' };
+      if (batchNums.has(num)) return { error: 'Número ' + num + ' repetido na lista de importação.' };
+      if (!ROLES.includes(r.role)) return { error: r.name.trim() + ': escolha a função tática.' };
+      batchNums.add(num);
+    }
+
+    let count = 0;
+    for (const r of selected) {
+      const err = saveAthlete({
+        teamId,
+        name: r.name.trim(),
+        number: Number(r.number),
+        role: r.role,
+        status: STATUS.includes(r.status) ? r.status : 'reserva'
+      });
+      if (err) return { error: err };
+      count++;
+    }
+    return { error: null, count };
+  }
+
   // ---- temporadas ----
   function saveSeason(s) {
     const d = D();
@@ -114,6 +228,6 @@
   function load2() { if (!db.seasons.length) { db.seasons.push({ id: uid('s'), name: 'Temporada ' + new Date().getFullYear(), createdAt: Date.now() }); } if (!db.seasons.some(s => s.id === db.settings.activeSeason)) db.settings.activeSeason = db.seasons[0].id; save(); }
   function wipe() { db = empty(); load2(); }
 
-  RV.Data = { ROLES, ROLE_ABB, STATUS, MODALITIES, SIZE, COLORS, uid, load, save, D, find, remove, saveTeam, deleteTeam, saveAthlete, teamAthletes, saveSeason, deleteSeason, setActiveSeason, activeSeason, createMatch, saveMatch, liveMatch, exportJSON, importJSON, wipe, isMemoryOnly: () => mem };
+  RV.Data = { ROLES, ROLE_ABB, STATUS, MODALITIES, SIZE, COLORS, uid, load, save, D, find, remove, saveTeam, deleteTeam, saveAthlete, teamAthletes, parseAthleteLines, saveAthletesBatch, saveSeason, deleteSeason, setActiveSeason, activeSeason, createMatch, saveMatch, liveMatch, exportJSON, importJSON, wipe, isMemoryOnly: () => mem };
   if (typeof module !== 'undefined' && module.exports) module.exports = RV.Data;
 })(typeof window !== 'undefined' ? window : globalThis);
