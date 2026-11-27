@@ -107,7 +107,7 @@
   function freshSet(cfg, setNo, firstServe) {
     const teams = {};
     ['home', 'away'].forEach(t => {
-      teams[t] = { lineup: cfg.teams[t].lineup.slice(), bench: cfg.teams[t].bench.slice(), subs: 0, subPairs: [] };
+      teams[t] = { lineup: cfg.teams[t].lineup.slice(), bench: cfg.teams[t].bench.slice(), subs: 0, subPairs: [], rotN: 0 };
     });
     return {
       no: setNo, score: { home: 0, away: 0 }, serving: firstServe, firstServe,
@@ -186,7 +186,7 @@
       if (st.cfg.modality === 'areia') {
         const q = s.srv[team]; q.cur = q.next; q.next = 1 - q.cur;
       } else {
-        s.teams[team].lineup = rotate(s.teams[team].lineup);
+        s.teams[team].lineup = rotate(s.teams[team].lineup); s.teams[team].rotN++;
       }
     } // quem saca e pontua mantém o saque, sem rodar
     const r = rules(st.cfg, s.no), tot = s.score.home + s.score.away;
@@ -244,6 +244,23 @@
     return { st, trace };
   }
 
+  // rotação atual (R1..R6) de um time de quadra, a partir da rotação inicial escolhida; null se não se aplica
+  function currentRot(st, team) {
+    const c = st.cfg.teams[team];
+    return c && c.rot ? ((c.rot - 1 + st.cur.teams[team].rotN) % 6) + 1 : null;
+  }
+  // se o PRÓXIMO ponto de cada time encerra o set ('set') ou a partida ('match')
+  function nextPointInfo(st) {
+    const out = { home: null, away: null };
+    if (st.phase !== 'playing') return out;
+    const s = st.cur, r = rules(st.cfg, s.no);
+    ['home', 'away'].forEach(t => {
+      const me = s.score[t] + 1, op = s.score[other(t)];
+      if (me >= r.target && me - op >= 2) out[t] = st.sets[t] + 1 >= setsToWin(st.cfg) ? 'match' : 'set';
+    });
+    return out;
+  }
+
   function derive(st) { // totais por equipe a partir dos atletas
     const teams = { home: emptyStats(), away: emptyStats() };
     ['home', 'away'].forEach(t => {
@@ -252,7 +269,7 @@
     return teams;
   }
 
-  const api = { SYSTEMS, ORDER, slotAfter, expectedRoles, autoLineup, checkLineup, allIds, courtLineup, ACTIONS, STAT_KEYS, MAX_SUBS, emptyStats, totalPoints, other, rules, setsToWin, rotate, initState, validate, apply, nextSet, replay, replayTrace, derive, serverId, onCourt };
+  const api = { currentRot, nextPointInfo, SYSTEMS, ORDER, slotAfter, expectedRoles, autoLineup, checkLineup, allIds, courtLineup, ACTIONS, STAT_KEYS, MAX_SUBS, emptyStats, totalPoints, other, rules, setsToWin, rotate, initState, validate, apply, nextSet, replay, replayTrace, derive, serverId, onCourt };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   (root.RV = root.RV || {}).Engine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

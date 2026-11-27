@@ -16,6 +16,7 @@ Site estático (HTML + CSS + JS puro, sem build). Abre com duplo clique em `inde
 | `match.js` | Configuração e tela ao vivo (Treino e Jogo) |
 | `stats.js` | Resumo, histórico, estatísticas, comparação, temporadas |
 | `app.js` | Roteador e Home |
+| `sw.js`, `manifest.webmanifest`, `icon.svg` | Modo offline e instalação na tela inicial (só funciona servido por http/https, como na Vercel) |
 | `test_engine.js`, `test_data.js` | Testes em Node: `node test_engine.js` |
 
 ## Ideia central: partida = lista de eventos
@@ -42,3 +43,10 @@ Para migrar a um banco: cada coleção vira uma tabela; `matches.events` vira ta
 ## Preparado para câmera/visão computacional (não implementado)
 Os eventos já têm `source`, `videoTime` e `confidence`. Um módulo futuro de visão só precisa gerar eventos no mesmo formato
 (com `source:'vision'`), que passam pela mesma validação e replay. Nada de detecção foi simulado.
+
+## Pensado para usar no jogo (celular)
+- Placar fixo no topo ao rolar; rotação atual (ex.: 5-1 · R3) de cada time; aviso "PONTO DE SET / PONTO DE JOGO".
+- Tela não apaga durante a partida (Wake Lock, quando o navegador permite); vibração curta ao registrar.
+- No jogo o atleta é desmarcado após registrar (no treino, continua marcado); dá para mudar na própria folha de ações.
+- "Repetir a última configuração" (equipes, escalação, funções) e "Compartilhar resumo" (texto pronto para WhatsApp).
+- Funciona offline depois do primeiro acesso (service worker, rede primeiro para sempre pegar a versão nova).

@@ -37,7 +37,7 @@
         E.allIds(m.cfg, t).forEach(id => {
           const s = st.stats[id]; if (!s) return;
           const p = m.snapshot.players[id];
-          const A = ath[id] || (ath[id] = { id, name: p.name, number: p.number, role: p.role, teamId: tid, teamName: info.name, games: 0, stats: E.emptyStats() });
+          const reg = D.find('athletes', id), A = ath[id] || (ath[id] = { id, name: p.name, number: p.number, role: reg ? reg.role : p.role, teamId: tid, teamName: info.name, games: 0, stats: E.emptyStats() });
           A.games++; A.name = p.name; A.number = p.number; A.teamName = info.name;
           E.STAT_KEYS.forEach(k => { A.stats[k] += s[k]; T.stats[k] += s[k]; });
         });
@@ -73,6 +73,7 @@
       h('div', {}, resultText(m)),
       m.mode === 'jogo' && m.result.complete ? h('div', { class: 'mut' }, 'Vencedor: ' + snap.teams[m.result.winner].name) : null,
       h('div', { class: 'row', style: { marginTop: '10px' } },
+        h('button', { class: 'sm pri', onclick: () => shareSummary(m) }, 'Compartilhar resumo'),
         h('button', { class: 'sm', onclick: () => moveDialog(m) }, 'Mudar temporada'),
         h('button', { class: 'sm dng', onclick: () => confirmBox('Excluir este registro e suas estatísticas?', 'Excluir', () => { D.remove('matches', m.id); toast('Registro excluído.'); RV.go('estatisticas'); }) }, 'Excluir registro'))));
     ['home', 'away'].forEach(t => {
@@ -93,6 +94,34 @@
     });
     root.appendChild(h('details', { class: 'card', style: { marginTop: '12px' } }, h('summary', {}, 'Histórico de eventos (' + m.events.length + ')'), hist));
   };
+
+  // texto pronto para WhatsApp: resultado, parciais e destaques (só de atletas cadastrados)
+  function summaryText(m) {
+    const { st } = replayOf(m), sn = m.snapshot, L = [];
+    const H = sn.teams.home.name, A = sn.teams.away.name;
+    if (m.mode === 'treino') L.push('Treino ' + fmtDate(m.date) + ' — ' + H + ' x ' + A + ' (' + m.result.score.home + ' a ' + m.result.score.away + ')');
+    else {
+      L.push(H + ' ' + m.result.sets.home + ' x ' + m.result.sets.away + ' ' + A + ' — ' + fmtDate(m.date));
+      if (m.result.done.length) L.push('Parciais: ' + m.result.done.map(d => d.home + '-' + d.away).join(', '));
+      if (!m.result.complete) L.push('(encerrado antes do fim)');
+    }
+    ['home', 'away'].forEach(t => {
+      if (m.cfg.teams[t].anon) return;
+      const rows = E.allIds(m.cfg, t).map(id => ({ id, s: st.stats[id], pts: E.totalPoints(st.stats[id]) })).filter(r => r.pts > 0 || r.s.digs || r.s.assists)
+        .sort((x, y) => y.pts - x.pts).slice(0, 3);
+      if (!rows.length) return;
+      L.push('', 'Destaques ' + sn.teams[t].name + ':');
+      rows.forEach(r => { const b = []; if (r.s.aces) b.push(r.s.aces + ' ace'); if (r.s.atkOk) b.push(r.s.atkOk + ' atq'); if (r.s.blocks) b.push(r.s.blocks + ' blq'); if (r.s.digs) b.push(r.s.digs + ' def'); if (r.s.assists) b.push(r.s.assists + ' ast');
+        L.push('• ' + sn.players[r.id].name + ': ' + r.pts + ' pts' + (b.length ? ' (' + b.join(', ') + ')' : '')); });
+    });
+    return L.join('\n');
+  }
+  function shareSummary(m) {
+    const text = summaryText(m);
+    if (navigator.share) navigator.share({ text }).catch(() => {});
+    else if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast('Resumo copiado.'), () => toast('Não consegui copiar.', true));
+    else modal('Resumo', h('textarea', { readonly: true, style: { width: '100%', minHeight: '160px', background: '#0a1028', color: 'var(--txt)', border: '1px solid var(--line)', borderRadius: '10px', padding: '8px' } }, text), [{ label: 'Fechar' }]);
+  }
 
   function moveDialog(m) {
     const sel = h('select', {}, D.D().seasons.map(s => opt(s.id, s.name, s.id === m.seasonId)));
@@ -199,5 +228,5 @@
     draw();
   };
 
-  RV.Stats = { aggregate, athleteTotals };
+  RV.Stats = { aggregate, athleteTotals, summaryText };
 })();

@@ -20,14 +20,15 @@
     }
     const ANON = 'anon';
     // conf por time: sys, rot, lineup[], bench[], libero
-    const S = { modality: 'quadra', team: { home: null, away: null }, anonName: 'Adversário', conf: { home: {}, away: {} }, first: 'home', target: 25, season: D.activeSeason().id };
+    const S = { modality: 'quadra', team: { home: null, away: null }, anonName: 'Adversário', roles: {}, conf: { home: {}, away: {} }, first: 'home', target: 25, season: D.activeSeason().id };
     const box = h('div', {}); root.appendChild(box);
     const isAnon = t => S.team[t] === ANON;
-    const athletes = t => (isAnon(t) || !S.team[t] ? [] : D.teamAthletes(S.team[t]));
+    // função efetiva NESTA partida: a escolhida aqui, senão a do cadastro (o cadastro não muda)
+    const athletes = t => (isAnon(t) || !S.team[t] ? [] : D.teamAthletes(S.team[t]).map(a => Object.assign({}, a, { reg: a.role, role: S.roles[a.id] || a.role })));
     const need = () => D.SIZE[S.modality];
 
     function autofill(t) {
-      const c = S.conf[t]; const all = athletes(t);
+      const c = S.conf[t]; const all = athletes(t); c.manual = false;
       if (isAnon(t) || !all.length) { c.lineup = new Array(need()).fill(''); c.bench = []; c.libero = ''; return; }
       if (S.modality === 'areia') {
         const tit = all.slice().sort((a, b) => (a.status === 'titular' ? 0 : 1) - (b.status === 'titular' ? 0 : 1) || a.number - b.number);
@@ -48,6 +49,23 @@
       ['home', 'away'].forEach(t => { S.conf[t] = Object.assign({ sys: '5-1', rot: 1 }, { sys: S.conf[t].sys || '5-1', rot: S.conf[t].rot || 1 }); autofill(t); });
     }
     pickTeams();
+
+    // ---- repetir a última configuração (mesmas equipes, escalação, funções) ----
+    const LAST = 'rv2:last:' + mode;
+    const getLast = () => { try { return JSON.parse(localStorage.getItem(LAST)); } catch (e) { return null; } };
+    function lastValid(L) {
+      if (!L || !D.MODALITIES[L.modality] || !L.team || !L.conf) return false;
+      for (const t of ['home', 'away']) {
+        const id = L.team[t];
+        if (id === ANON) { if (mode !== 'jogo') return false; continue; }
+        const tm = D.find('teams', id); if (!tm || tm.modality !== L.modality) return false;
+        const c = L.conf[t]; if (!c) return false;
+        const ids = (c.lineup || []).concat(c.bench || [], c.libero ? [c.libero] : []);
+        if (ids.some(x => x && !D.teamAthletes(id).some(a => a.id === x))) return false;
+      }
+      return L.team.home !== L.team.away;
+    }
+    function applyLast(L) { S.modality = L.modality; S.team = L.team; S.anonName = L.anonName || 'Adversário'; S.roles = L.roles || {}; S.first = L.first || 'home'; S.conf = L.conf; ['home', 'away'].forEach(t => { S.conf[t].manual = true; }); }
 
     function keepScroll(fn) { const y = window.scrollY; fn(); window.scrollTo(0, y); }
 
@@ -72,37 +90,62 @@
         const lu = c.lineup, prev = lu[i], from = lu.indexOf(id);
         if (id && from >= 0 && from !== i) lu[from] = prev; // troca de lugar entre dois
         else if (prev && !c.bench.includes(prev) && prev !== c.libero) c.bench.push(prev);
-        lu[i] = id; c.bench = c.bench.filter(x => lu.indexOf(x) < 0 && x !== c.libero);
+        c.manual = true; lu[i] = id; c.bench = c.bench.filter(x => lu.indexOf(x) < 0 && x !== c.libero);
         if (id === c.libero) c.libero = '';
         keepScroll(draw);
       };
       const mk = i => {
         const sel = h('select', { 'aria-label': (beach ? 'Atleta ' + (i + 1) : 'Posição P' + (i + 1)) + ' ' + team.name, onchange: () => setSlot(i, sel.value) },
-          opt('', '— escolher —', !c.lineup[i]), all.map(a => opt(a.id, '#' + a.number + ' ' + a.name + ' (' + abb(a.role) + ')', c.lineup[i] === a.id)));
+          opt('', '— escolher —', !c.lineup[i]), all.map(a => opt(a.id, '#' + a.number + ' ' + a.name + ' (' + abb(a.role) + (a.role !== a.reg ? '*' : '') + ')', c.lineup[i] === a.id)));
         return h('div', { class: 'field', style: { margin: '4px 0' } }, h('label', {}, beach ? (i === 0 ? 'Atleta 1 · saca primeiro' : 'Atleta 2') : 'P' + (i + 1)), sel);
       };
       const grid = beach ? h('div', { class: 'grid', style: { gridTemplateColumns: '1fr 1fr' } }, mk(0), mk(1))
         : h('div', {}, h('div', { class: 'sm-t mut' }, 'Rede ▲'), h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(3,1fr)', gap: '6px' } }, [3, 2, 1, 4, 5, 0].map(mk)));
       const parts = head.concat([grid]);
+      if (!beach && all.length) {
+        const rows = all.map(a => {
+          const rs = h('select', { 'aria-label': 'Função de ' + a.name + ' neste jogo', style: { minWidth: '130px' }, onchange: () => {
+            if (rs.value === a.reg) delete S.roles[a.id]; else S.roles[a.id] = rs.value;
+            if (!c.manual) autofill(t);
+            keepScroll(draw);
+          } }, D.ROLES.map(r => opt(r, r + (r === a.reg ? ' (cadastro)' : ''), a.role === r)));
+          return h('div', { class: 'li', style: { padding: '4px 0' } }, h('span', { class: 'num' }, a.number), h('div', { class: 'grow' }, a.name), rs);
+        });
+        parts.push(h('details', { style: { marginTop: '8px' }, open: all.some(a => a.role !== a.reg) },
+          h('summary', { class: 'sm-t' }, 'Função de cada atleta neste jogo' + (all.some(a => a.role !== a.reg) ? ' (alterada)' : '')),
+          h('div', { class: 'sm-t mut', style: { margin: '6px 0' } }, 'Só vale para esta partida; o cadastro não muda. Ex.: um líbero pode jogar de oposto, um central de ponteiro.'), h('div', {}, rows)));
+      }
       if (!beach) {
         const warns = E.checkLineup(c.sys, c.rot, c.lineup.map(id => (byId(id) || {}).role || ''));
         if (warns.length) parts.push(h('div', { class: 'sm-t', style: { color: 'var(--gold)', marginTop: '8px' } }, warns.map(w => h('div', {}, '⚠ ' + w)), h('button', { class: 'sm', style: { marginTop: '6px' }, onclick: () => { autofill(t); keepScroll(draw); } }, 'Reorganizar pelo tutorial')));
         if (E.SYSTEMS[c.sys].libero) {
           const cands = all.filter(a => !c.lineup.includes(a.id)).sort((a, b) => (b.role === 'Líbero') - (a.role === 'Líbero'));
-          const ls = h('select', { 'aria-label': 'Líbero ' + team.name, onchange: () => { c.libero = ls.value; c.bench = c.bench.filter(x => x !== c.libero); keepScroll(draw); } },
+          const ls = h('select', { 'aria-label': 'Líbero ' + team.name, onchange: () => {
+            const prev = c.libero, nu = ls.value, pa = all.find(a => a.id === prev);
+            if (pa && S.roles[prev] === 'Líbero' && pa.reg !== 'Líbero') delete S.roles[prev];
+            c.libero = nu; c.manual = true; c.bench = c.bench.filter(x => x !== nu);
+            if (nu) { const na = all.find(a => a.id === nu); if (na && na.reg !== 'Líbero') S.roles[nu] = 'Líbero'; }
+            keepScroll(draw);
+          } },
             opt('', 'Sem líbero', !c.libero), cands.map(a => opt(a.id, '#' + a.number + ' ' + a.name + (a.role === 'Líbero' ? '' : ' (' + abb(a.role) + ')'), c.libero === a.id)));
           parts.push(field('Líbero (entra no lugar do central no fundo, P5/P6)', ls));
         } else parts.push(h('div', { class: 'sm-t mut', style: { marginTop: '8px' } }, 'O 4-2 não usa líbero.'));
         const benchOpts = all.filter(a => !c.lineup.includes(a.id) && a.id !== c.libero);
         parts.push(h('div', { class: 'lbl mut sm-t', style: { margin: '10px 0 4px' } }, 'Banco (substituições)'));
         parts.push(benchOpts.length ? h('div', { class: 'chips' }, benchOpts.map(a => h('span', { class: 'chip' + (c.bench.includes(a.id) ? ' on' : ''), role: 'checkbox', 'aria-checked': c.bench.includes(a.id), tabindex: 0,
-          onclick: () => { const i = c.bench.indexOf(a.id); if (i < 0) c.bench.push(a.id); else c.bench.splice(i, 1); keepScroll(draw); } }, '#' + a.number + ' ' + a.name))) : h('div', { class: 'sm-t mut' }, 'Sem outros atletas.'));
+          onclick: () => { c.manual = true; const i = c.bench.indexOf(a.id); if (i < 0) c.bench.push(a.id); else c.bench.splice(i, 1); keepScroll(draw); } }, '#' + a.number + ' ' + a.name))) : h('div', { class: 'sm-t mut' }, 'Sem outros atletas.'));
       }
       return h('div', { class: 'card' }, parts);
     }
 
     function draw() {
       box.innerHTML = '';
+      const L = getLast();
+      if (lastValid(L)) {
+        const nm = t => (L.team[t] === ANON ? (L.anonName || 'Adversário') : D.find('teams', L.team[t]).name);
+        box.appendChild(h('div', { class: 'banner row sp', style: { marginBottom: '12px' } }, h('div', {}, h('b', {}, 'Repetir a última configuração'), h('div', { class: 'sm-t mut' }, nm('home') + ' × ' + nm('away') + ' · ' + D.MODALITIES[L.modality])),
+          h('button', { class: 'pri', onclick: () => { applyLast(L); keepScroll(draw); } }, 'Usar')));
+      }
       const ts = d0.teams.filter(t => t.modality === S.modality), minTeams = mode === 'treino' ? 2 : 1;
       const modSel = h('select', { onchange: () => { S.modality = modSel.value; S.team.home = S.team.away = null; pickTeams(); keepScroll(draw); } }, Object.keys(D.MODALITIES).map(k => opt(k, D.MODALITIES[k], S.modality === k)));
       box.appendChild(h('div', { class: 'card' }, field('Modalidade', modSel)));
@@ -148,9 +191,10 @@
         cfg.teams[t] = { lineup: lu.slice(), bench: c.bench.slice(), system: n === 6 ? c.sys : null, rot: n === 6 ? c.rot : null };
         if (c.libero) { cfg.teams[t].libero = c.libero; cfg.teams[t].centrals = all.filter(a => a.role === 'Central').map(a => a.id); }
         snapshot.teams[t] = { id: team.id, name: team.name, color: team.color };
-        ids.forEach(id => { const a = D.find('athletes', id); snapshot.players[id] = { name: a.name, number: a.number, role: a.role, team: t }; });
+        ids.forEach(id => { const a = all.find(x => x.id === id); snapshot.players[id] = { name: a.name, number: a.number, role: a.role, team: t }; });
       }
       if (snapshot.teams.home.color === snapshot.teams.away.color) snapshot.teams.away.color = snapshot.teams.home.color === '#ef4444' ? '#f59e0b' : '#ef4444';
+      try { localStorage.setItem(LAST, JSON.stringify({ modality: S.modality, team: S.team, anonName: S.anonName, roles: S.roles, first: S.first, conf: { home: { sys: S.conf.home.sys, rot: S.conf.home.rot, lineup: S.conf.home.lineup, bench: S.conf.home.bench, libero: S.conf.home.libero }, away: { sys: S.conf.away.sys, rot: S.conf.away.rot, lineup: S.conf.away.lineup, bench: S.conf.away.bench, libero: S.conf.away.libero } } })); } catch (e) { /* noop */ }
       const rec = D.createMatch({ mode, modality: S.modality, seasonId: S.season, cfg, snapshot });
       RV.go('live/' + rec.id);
       return null;
@@ -182,6 +226,10 @@
 .sb{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;text-align:center;margin-bottom:10px}
 .sb .tn{font-weight:800;font-size:15px;overflow:hidden;text-overflow:ellipsis}
 .sb .big{font-size:46px;font-weight:900;line-height:1}
+.sb .rotl{font-size:12px;color:var(--mut);min-height:16px}
+.pt-badge{font-size:11px;font-weight:800;color:#111;background:var(--gold);border-radius:99px;padding:2px 8px;margin:4px auto 0;width:max-content;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.55}}
+@media(max-width:899px){.sb{position:sticky;top:56px;z-index:6;padding:8px;box-shadow:0 6px 14px #000b}.sb .big{font-size:36px}.sb .tn{font-size:13px}}
 .sb .mid{font-size:12px;color:var(--mut)}
 .sb .srv{font-size:12px;color:var(--gold);font-weight:700;min-height:18px}
 .sb .side-a.serving{outline:2px solid var(--gold);border-radius:12px}
@@ -200,12 +248,17 @@
     const nameOf = id => (snap.players[id] ? snap.players[id].name : '?');
     const posOf = (st, team, id) => E.courtLineup(st, team).indexOf(id);
 
+    // manter o atleta selecionado depois de registrar? padrão: sim no treino, não no jogo
+    const KEEP = 'rv2:keep:' + rec.mode;
+    const keepSel = () => { try { const v = localStorage.getItem(KEEP); return v == null ? isTrain : v === '1'; } catch (e) { return isTrain; } };
+    const setKeep = v => { try { localStorage.setItem(KEEP, v ? '1' : '0'); } catch (e) { /* noop */ } };
     function persist() { D.saveMatch(); }
     function add(ev) {
       const e = Object.assign({ id: D.uid('e'), ts: Date.now(), source: 'manual', videoTime: null, confidence: null }, ev);
       const test = E.replay(cfg, rec.events.concat([e]));
       if (test.errors.length) { toast(test.errors[test.errors.length - 1], true); return false; }
       rec.events.push(e); persist(); compute();
+      try { if (navigator.vibrate) navigator.vibrate(12); } catch (err) { /* noop */ }
       if (R.st.cur.switchAlert && !isTrain) toast('Troca de lado! (placar ' + R.st.cur.score.home + '–' + R.st.cur.score.away + ')');
       return true;
     }
@@ -224,10 +277,13 @@
     }
 
     function drawScore() {
-      const st = R.st, s = st.cur, srv = E.serverId(st, s.serving);
+      const st = R.st, s = st.cur, srv = E.serverId(st, s.serving), np = isTrain ? {} : E.nextPointInfo(st);
+      const rotText = t => { const r = E.currentRot(st, t), sy = cfg.teams[t].system; return r ? (sy ? sy + ' · ' : '') + 'R' + r : ''; };
       const side = (team) => h('div', { class: 'side-a' + (s.serving === team ? ' serving' : '') },
         h('div', { class: 'tn', style: { color: snap.teams[team].color } }, snap.teams[team].name),
-        h('div', { class: 'big' }, s.score[team]), h('div', { class: 'srv' }, s.serving === team ? '🏐 saca' + (srv ? ': ' + nameOf(srv) : '') : ''));
+        h('div', { class: 'rotl' }, rotText(team)),
+        h('div', { class: 'big' }, s.score[team]),
+        np[team] ? h('div', { class: 'pt-badge' }, np[team] === 'match' ? 'PONTO DE JOGO' : 'PONTO DE SET') : null, h('div', { class: 'srv' }, s.serving === team ? '🏐 saca' + (srv ? ': ' + nameOf(srv) : '') : ''));
       sb.innerHTML = '';
       sb.appendChild(side('home'));
       sb.appendChild(h('div', {}, h('div', { class: 'mid' }, isTrain ? 'Treino' : 'Set ' + s.no), isTrain ? h('div', { class: 'mid' }, 'Meta ' + (cfg.target || 25)) : h('div', { class: 'big', style: { fontSize: '22px' } }, st.sets.home + ' – ' + st.sets.away), isTrain ? null : h('div', { class: 'mid' }, 'sets')));
@@ -255,11 +311,13 @@
       const idx = posOf(st, sel.team, sel.id), srvId = E.serverId(st, sel.team);
       sheet.appendChild(h('div', { class: 'row sp' }, h('div', {}, h('b', { style: { color: snap.teams[sel.team].color } }, '#' + pl.number + ' ' + pl.name), h('div', { class: 'sm-t mut' }, pl.role + (isBeach ? '' : ' · P' + (idx + 1)) + (sel.id === srvId && st.cur.serving === sel.team ? ' · sacando' : ''))),
         h('button', { class: 'sm', 'aria-label': 'Fechar', onclick: () => { sel = null; court.select(null); drawSheet(); } }, 'Fechar')));
+      sheet.appendChild(h('label', { class: 'sm-t mut', style: { display: 'flex', gap: '6px', alignItems: 'center', margin: '6px 0 0' } },
+        h('input', { type: 'checkbox', style: { width: 'auto', minHeight: 0 }, checked: keepSel(), onchange: e => setKeep(e.target.checked) }), 'Manter o atleta selecionado após registrar'));
       GROUPS.forEach(([title, keys]) => {
         sheet.appendChild(h('div', { class: 'lbl mut sm-t', style: { margin: '8px 0 4px' } }, title));
         sheet.appendChild(h('div', { class: 'act' }, keys.map(k => {
           const a = E.ACTIONS[k], err = E.validate(st, { type: 'action', team: sel.team, athleteId: sel.id, action: k });
-          return h('button', { disabled: !!err, title: err || '', class: a.pts === 'opp' ? 'dng' : '', onclick: () => { if (add({ type: 'action', team: sel.team, athleteId: sel.id, action: k })) { toast(a.label + ' — ' + pl.name); refresh(); } } }, a.short);
+          return h('button', { disabled: !!err, title: err || '', class: a.pts === 'opp' ? 'dng' : '', onclick: () => { if (add({ type: 'action', team: sel.team, athleteId: sel.id, action: k })) { toast(a.label + ' — ' + pl.name); if (!keepSel()) { sel = null; court.select(null); } refresh(); } } }, a.short);
         })));
       });
       sheet.appendChild(h('p', { class: 'sm-t mut hint-t', style: { margin: '8px 0 0' } }, 'Ações que dão ponto (ace, ataque +, bloqueio, ponto) marcam para a equipe do atleta. Erros (saque, ataque, recepção) dão o ponto ao adversário. Botões apagados não valem agora: saque só do sacador, recepção só de quem recebe.'));
@@ -332,7 +390,11 @@
 
     function refresh() { compute(); drawScore(); drawBanner(); court.update(R.st, snap); drawSheet(); drawCtrl(); drawHist(); drawStats(); }
     refresh();
-    RV.onLeave(() => { const s = document.getElementById('live-css'); if (s) s.remove(); });
+    // mantém a tela acesa durante a partida (quando o navegador permite)
+    let wake = null;
+    const lock = () => { try { if (navigator.wakeLock && document.visibilityState === 'visible') navigator.wakeLock.request('screen').then(w => { wake = w; }).catch(() => {}); } catch (e) { /* noop */ } };
+    document.addEventListener('visibilitychange', lock); lock();
+    RV.onLeave(() => { document.removeEventListener('visibilitychange', lock); if (wake) { try { wake.release(); } catch (e) { /* noop */ } } const s = document.getElementById('live-css'); if (s) s.remove(); });
     RV.liveDebug = { get state() { return R; }, rec };
   };
 })();

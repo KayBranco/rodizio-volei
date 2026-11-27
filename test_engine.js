@@ -105,3 +105,18 @@ console.log(n+' verificações',process.exitCode?'COM FALHAS':'OK');
  eq(s3.stats.lib.digs,1,'líbero registra defesa');ok(s3.errors.length===1,'central substituído não age');
 }
 console.log(n+' verificações (com sistemas)',process.exitCode?'COM FALHAS':'OK');
+// ---- rotação atual e ponto de set/jogo ----
+{
+ const c=cfg('quadra');c.teams.home.rot=3;c.teams.away.rot=1;let st=E.replay(c,[]);
+ eq(E.currentRot(st,'home'),3,'rotação inicial R3');
+ for(let i=0;i<4;i++){E.apply(st,act('away','point'));E.apply(st,act('home','point'));}
+ eq(E.currentRot(st,'home'),((3-1+4)%6)+1,'R3 + 4 giros = R1');
+ eq(E.currentRot(E.replay(cfg('areia'),[]),'home'),null,'areia sem rotação');
+ let ev2=[];for(let i=0;i<24;i++)ev2.push(act('home','point'));
+ st=E.replay(cfg('quadra'),ev2);eq(E.nextPointInfo(st),{home:'set',away:null},'ponto de set 24-0');
+ ev2=[];for(let i=0;i<24;i++){ev2.push(act('home','point'));ev2.push(act('away','point'));}
+ eq(E.nextPointInfo(E.replay(cfg('quadra'),ev2)),{home:null,away:null},'24-24 não é ponto de set');
+ ev2=[];for(let s=0;s<2;s++){for(let i=0;i<25;i++)ev2.push(act('home','point'));ev2.push({id:++id,type:'nextSet'});}for(let i=0;i<24;i++)ev2.push(act('home','point'));
+ eq(E.nextPointInfo(E.replay(cfg('quadra'),ev2)).home,'match','ponto de jogo 2x0 e 24-0');
+}
+console.log(n+' verificações (rot/ponto de set)',process.exitCode?'COM FALHAS':'OK');
