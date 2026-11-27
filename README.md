@@ -1,142 +1,64 @@
 # 🏐 Rodízio de Vôlei
 
-Plataforma para **treinar, jogar e acompanhar** vôlei de quadra e de areia, com tutorial animado de rodízio.
+Plataforma web para **treinar, jogar, gerenciar equipes e aprender** os sistemas táticos do vôlei de quadra e de areia, contando com um simulador visual e interativo de rodízio.
 
-## Módulos (Home)
-- **Modo Treino**: escolha modalidade, sua equipe, o adversário e os atletas; registre saques, ataques, bloqueios, recepções, defesas, assistências e pontos.
-- **Modo Jogo**: placar, sets, rodízio real, saque, substituições, histórico de eventos, estatísticas por atleta e desfazer.
-- **Minhas Equipes / Atletas**: cadastro de equipes (nome, modalidade, cor) e atletas (nome, camisa, função tática, titular/reserva).
-- **Estatísticas e Temporadas**: histórico, totais por atleta e equipe, comparação entre períodos, várias temporadas.
-- **Tutorial e Aprendizado**: o tutorial animado de rodízio (`tutorial.html`).
+## Módulos da Plataforma
 
-## Como rodar
-Abra `index.html` no navegador (não precisa instalar nada). Na Vercel: suba todos os arquivos na raiz do repositório.
-Os dados ficam no navegador (localStorage). Use **Exportar backup** na Home para guardar uma cópia.
-
-## Testes
-`node test_engine.js` e `node test_data.js` (regras e dados). Detalhes técnicos em `ARQUITETURA.md`.
+- **Modo Treino**: selecione a modalidade (quadra ou areia), sua equipe, o adversário e os atletas em quadra para registrar fundamentos em tempo real (saques, ataques, bloqueios, recepções, defesas, assistências e pontos).
+- **Modo Jogo**: controle completo de partida com placar, sets, acompanhamento de rodízio real, posse de saque, substituições, histórico de eventos, estatísticas individuais por atleta e opção de desfazer ações.
+- **Minhas Equipes / Atletas**: cadastro e gestão de equipes (nome, modalidade e cor) e elenco (nome, número da camisa, função tática e status de titular/reserva).
+- **Estatísticas e Temporadas**: histórico completo de partidas, métricas consolidadas por atleta ou equipe, comparação de desempenho entre períodos e suporte a múltiplas temporadas.
+- **Tutorial e Aprendizado (`tutorial.html`)**: simulador animado e interativo para visualizar a movimentação dos jogadores na quadra em diferentes sistemas táticos.
 
 ---
 
-# Sobre o tutorial (versão anterior)
+## Como usar o Tutorial Interativo
 
-Um site para **aprender o rodízio do vôlei** vendo os jogadores se movimentarem na quadra: recebendo o saque, defendendo, levantando e atacando. Feito para iniciantes, e funciona no celular e no computador.
+Desenvolvido para ajudar iniciantes e praticantes a visualizarem **onde cada jogador se posiciona e como se movimenta** durante uma partida, sem precisar decorar tabelas estáticas.
 
-## Para quem é
+### 1. Escolha o sistema tático
+- **5-1**: 1 levantador e 5 atacantes (o mesmo levantador atua em todas as rotações).
+- **4-2**: 2 levantadores e 4 atacantes (levanta quem está na rede).
+- **6-2**: 2 levantadores e 4 atacantes — 2 pontas e 2 centrais (levanta quem vem do fundo; o levantador da rede atua como atacante).
 
-Para quem está começando no vôlei e quer entender **onde cada jogador fica em cada rotação** nos sistemas 5-1, 4-2 e 6-2. Em vez de decorar uma tabela, você vê a movimentação acontecendo.
+### 2. Navegue pelas rotações (R1 a R6)
+A **R1** representa a formação inicial. Sempre que a equipe recupera o direito de saque, todos os jogadores giram uma posição no sentido horário. Alternar entre as rotações exibe a transição na quadra.
 
----
+### 3. Selecione a situação de jogo
+- **Eu recebo o saque**: o adversário saca, a equipe organiza o passe, o levantador infiltra para a rede e realiza o levantamento para o ataque.
+- **Eu saco**: o jogador da posição P1 executa o saque, o time se posiciona no bloqueio e defesa e realiza o contra-ataque.
 
-## Como usar
+### 4. Perspectiva individual ("Eu sou")
+Selecione sua função em quadra (Central, Ponteiro, Oposto, Levantador ou Líbero). Seu jogador recebe um destaque visual e a interface exibe:
+- sua posição exata na rotação atual;
+- orientações práticas sobre o que fazer naquele momento da jogada;
+- o mapa das suas posições ao longo de todas as rotações (R1 a R6).
 
-### 1. Escolha o sistema
-- **5-1**: 1 levantador e 5 atacantes. O mesmo levantador levanta o jogo todo.
-- **4-2**: 2 levantadores e 4 atacantes. Levanta quem está na rede.
-- **6-2**: 2 levantadores e 4 atacantes (2 pontas e 2 centrais). Levanta quem está no fundo; o da rede vira atacante.
+### 5. Controles da simulação e recursos extras
+- **Reprodução**: use **▶ Simular** para assistir à jogada completa, **◀ / ▶** para avançar passo a passo, os botões numerados para ir a um momento específico ou o seletor de **velocidade**.
+- **Líbero**: ative ou desative a entrada automática do líbero no lugar do central quando este estiver nas posições de fundo (P5 e P6).
+- **Visualização**: alterne a exibição dos rótulos de posição (P1 a P6) e acesse o quadro comparativo com **todas as 6 rotações** lado a lado.
+- **Guia de regras**: resumos rápidos sobre rodízio, zonas da quadra, falta de posição (sobreposição) e regras do líbero.
 
-### 2. Escolha a rotação (R1 a R6)
-A R1 é a rotação inicial. Cada vez que o seu time ganha o saque, todos giram uma posição no sentido horário. Trocar de rotação mostra os jogadores girando na quadra.
-
-### 3. Escolha a situação
-- **Eu recebo o saque**: o adversário saca, o time faz a recepção, o levantador corre para a rede e a bola é levantada para um atacante.
-- **Eu saco**: quem está em P1 saca, o time bloqueia e defende, e depois faz o contra-ataque.
-
-### 4. Escolha quem você é
-Toque em **Eu sou** e escolha sua função (Central 1, Ponteiro, Oposto, Levantador, Líbero...). O seu jogador fica destacado com um anel dourado e o site mostra:
-- em que posição você está na rotação atual;
-- uma dica do que fazer naquele momento;
-- as suas posições em todas as rotações (R1 a R6).
-
-### 5. Veja a animação
-- **▶ Simular** roda todos os passos em sequência.
-- **◀ e ▶** avançam ou voltam um passo.
-- Os botões numerados abaixo da quadra levam direto a um passo.
-- O controle de **velocidade** deixa a animação mais lenta ou mais rápida.
-
-### Outros recursos
-- **Líbero**: pode ser ligado ou desligado. Ele entra no lugar do central quando o central está no fundo (P6 e P5).
-- **Mostrar posições**: liga ou desliga os rótulos P1 a P6 nos jogadores.
-- **Todas as rotações**: quadro com as 6 rotações lado a lado. Toque numa delas para ir até ela.
-- **Regrinhas para iniciantes**: explicações curtas sobre rodízio, posições, sobreposição e líbero.
-
-### Como ler a quadra
-- A quadra é vista de cima, com a **rede no alto** e a linha de fundo embaixo.
-- Esquerda e direita são as de quem joga olhando para a rede: P4 à esquerda na rede, P2 à direita na rede.
-- Os números de fundo mostram as zonas P1 a P6.
-- O jogador vermelho é o adversário (sacador ou atacante).
-- A bola tem uma sombra para dar noção de altura, e uma linha pontilhada marca o caminho de cada passe.
+### Leitura da quadra
+- A quadra é exibida em vista superior, com a **rede no topo** e a linha de fundo na base.
+- As laterais correspondem à visão de quem olha para a rede (**P4** à esquerda da rede, **P2** à direita).
+- As zonas numéricas no piso indicam as posições **P1 a P6**, o marcador vermelho representa o adversário e a linha pontilhada ilustra a trajetória da bola.
 
 ---
 
-## Como foi feito
+## Arquitetura e Tecnologias
 
-O projeto é **um único arquivo** (`index.html`) com HTML, CSS e JavaScript puro. Não usa framework, não precisa instalar nada e não depende de internet depois de carregado.
+O projeto é construído sem dependências externas ou frameworks pesados, utilizando tecnologias web nativas para garantir carregamento instantâneo e funcionamento offline após o primeiro acesso.
 
-### Tecnologias
-- **HTML + CSS**: layout responsivo com CSS Grid. No celular tudo fica em uma coluna; no computador, a quadra fica de um lado e os controles do outro.
-- **SVG**: a quadra, os jogadores e a bola são desenhados em SVG, que escala bem em qualquer tela.
-- **JavaScript**: toda a lógica de rotação e as animações.
+- **HTML5 & CSS3**: interface responsiva baseada em CSS Grid, adaptando-se automaticamente entre telas móveis (coluna única) e desktop (quadra e painel de controle lado a lado).
+- **SVG**: renderização vetorial da quadra, zonas, jogadores e trajetória da bola, garantindo nitidez em qualquer resolução.
+- **JavaScript (ES6+)**: motor de regras, cálculo de rotações, gestão de estado e interpolação de animações via `requestAnimationFrame`.
+- **Persistência Local**: todos os dados de equipes, partidas e estatísticas são salvos no `localStorage` do navegador, com suporte a exportação e importação de backup direto na tela inicial.
 
-### A lógica do rodízio
-Cada jogador começa em uma posição inicial. A ordem de rotação é P1 → P6 → P5 → P4 → P3 → P2 → P1, e a posição de um jogador na rotação *n* é calculada deslocando-o *n − 1* casas nessa ordem:
+### Lógica de rotação
+A ordem de deslocamento segue o ciclo `P1 → P6 → P5 → P4 → P3 → P2 → P1`. A posição de cada atleta na rotação $n$ é calculada a partir da sua posição inicial:
 
-```js
+```javascript
 const ORDER = [1, 6, 5, 4, 3, 2];
 const slotAfter = (s0, rot) => ORDER[(ORDER.indexOf(s0) + rot - 1) % 6];
-```
-
-Cada sistema tem a sua lista de jogadores e a sua formação inicial. Quem levanta é definido assim:
-- **5-1**: sempre o mesmo levantador.
-- **6-2**: o levantador que está no fundo.
-- **4-2**: o levantador que está na rede.
-
-O líbero entra no lugar do central quando ele está em P6 ou P5.
-
-### Formações
-Cada momento do jogo tem coordenadas (em metros) para cada posição da quadra:
-- posição de rotação;
-- recepção (o levantador "se esconde" perto da rede);
-- saque;
-- defesa;
-- ataque (levantador na rede, ponteiro à esquerda, central no meio, oposto à direita, o resto cobrindo).
-
-As posições seguem a regra de sobreposição para a recepção, mas são **exemplos comuns**: cada técnico pode adaptar.
-
-### Animação
-- Os jogadores se movem com interpolação suave (`requestAnimationFrame`) e um pequeno balanço para parecer que estão correndo.
-- A bola segue uma trajetória em arco, com sombra no chão para dar a ideia de altura.
-- Cada passo da simulação cancela o anterior, então dá para clicar à vontade sem travar.
-
-### Estrutura do código
-O JavaScript está dividido em blocos:
-1. **Dados**: sistemas, jogadores, cores e formações.
-2. **Lógica**: cálculo de rotação, levantador ativo e quem recebe a bola.
-3. **Desenho (SVG)**: quadra, jogadores e bola.
-4. **Animação**: movimentação dos jogadores e da bola.
-5. **Interface**: botões, textos e quadro de rotações.
-
----
-
-## Como rodar
-
-Abra o `index.html` no navegador. Não precisa instalar nada.
-
-## Como publicar na Vercel (grátis)
-
-1. Entre em [vercel.com](https://vercel.com) com a sua conta do GitHub.
-2. Clique em **Add New → Project**.
-3. Escolha este repositório e clique em **Deploy**.
-
-O arquivo `index.html` precisa ficar na raiz do repositório.
-
-## Ideias para o futuro
-
-- Vista 3D com perspectiva e personagens mais realistas
-- Formações de recepção com 3 passadores e outras variações
-- Modo treino com perguntas ("onde fica o central na R3?")
-- Compartilhar uma rotação específica por link
-
-## Créditos
-
-Inspirado em uma demonstração de rodízio de vôlei animado vista nas redes sociais. Projeto criado para estudar e ensinar vôlei para iniciantes. 🏐
