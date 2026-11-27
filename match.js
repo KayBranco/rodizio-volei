@@ -221,8 +221,10 @@
       h('div', { class: 'rcol' }, sheet, hist, stats)));
     if (!document.getElementById('live-css')) {
       const st = h('style', { id: 'live-css' }, `
-.live{display:grid;gap:12px}.lcol{min-width:0}.rcol{min-width:0}
-@media(min-width:900px){.live{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}.rcol{position:sticky;top:64px;align-self:start;max-height:calc(100vh - 80px);overflow:auto}}
+.live{display:grid;gap:14px;min-width:0}.lcol{min-width:0}.rcol{min-width:0}
+@media(min-width:1100px){.live{grid-template-columns:minmax(0,1.25fr) minmax(360px,.85fr);align-items:start}.rcol{position:sticky;top:64px;align-self:start;max-height:calc(100vh - 80px);overflow:auto}}
+@media(min-width:1500px){.live{gap:20px}.sb{padding:18px}.sb .big{font-size:58px}.sb .tn{font-size:18px}}
+@media(min-width:700px) and (max-width:1099px){.live{grid-template-columns:minmax(0,1fr)}.rcol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.rcol .sheet,.rcol .card{min-width:0}.sb .big{font-size:46px}}
 .sb{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;text-align:center;margin-bottom:10px}
 .sb .tn{font-weight:800;font-size:15px;overflow:hidden;text-overflow:ellipsis}
 .sb .big{font-size:46px;font-weight:900;line-height:1}
@@ -240,7 +242,7 @@
 .evrow{display:flex;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}
 .evrow .sc{color:var(--mut);min-width:64px;font-variant-numeric:tabular-nums}
 .evlist{max-height:240px;overflow:auto}
-@media(max-width:899px){.sheet.open{position:fixed;left:0;right:0;bottom:0;z-index:20;margin:0;padding:10px 12px 14px;background:var(--panel);border-top:2px solid var(--blue);max-height:55vh;overflow:auto;box-shadow:0 -8px 30px #000a}.live.sheetopen{padding-bottom:42vh}}
+@media(max-width:699px){.sheet.open{position:fixed;left:0;right:0;bottom:0;z-index:20;margin:0;padding:10px 12px 14px;background:var(--panel);border-top:2px solid var(--blue);max-height:55vh;overflow:auto;box-shadow:0 -8px 30px #000a}.live.sheetopen{padding-bottom:42vh}}
 `); document.head.appendChild(st);
     }
 
@@ -344,8 +346,8 @@
         body.innerHTML = '';
         const ts = h('select', { onchange: () => { team = ts.value; drawBody(); } }, ['home', 'away'].map(t => opt(t, snap.teams[t].name, team === t)));
         const L = st.cur.teams[team].lineup, B = st.cur.teams[team].bench;
-        const out = h('select', {}, L.map((id, i) => opt(id, 'P' + (i + 1) + ' · #' + snap.players[id].number + ' ' + snap.players[id].name)));
-        const inn = h('select', {}, B.map(id => opt(id, '#' + snap.players[id].number + ' ' + snap.players[id].name + ' (' + abb(snap.players[id].role) + ')')));
+        const out = h('select', {}, L.map((id, i) => opt(id, 'P' + (i + 1) + ' · #' + snap.players[id].number + ' · ' + snap.players[id].name + ' (' + abb(snap.players[id].role) + ')')));
+        const inn = h('select', {}, B.map(id => opt(id, '#' + snap.players[id].number + ' · ' + snap.players[id].name + ' (' + abb(snap.players[id].role) + ')')));
         body.appendChild(field('Equipe', ts)); body.appendChild(h('div', { class: 'sm-t mut' }, 'Substituições: ' + subsInfo(team) + '. O reserva assume a posição de quem sai.'));
         if (!B.length) body.appendChild(h('div', { class: 'err' }, 'Esta equipe não tem reservas no banco.'));
         else { body.appendChild(field('Sai', out)); body.appendChild(field('Entra', inn)); }

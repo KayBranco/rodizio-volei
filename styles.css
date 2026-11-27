@@ -3,7 +3,7 @@
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
 a{color:var(--blue)}
-#app{max-width:1100px;margin:0 auto;padding:12px 14px 40px}
+#app{width:min(100%,1560px);max-width:1560px;margin:0 auto;padding:16px clamp(14px,2vw,30px) 48px}
 button,input,select{font:inherit;color:var(--txt)}
 button{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;min-height:40px}
 button:hover{border-color:var(--blue)}
@@ -56,6 +56,10 @@ h1{font-size:22px;margin:0}h2{font-size:17px;margin:18px 0 8px}h3{font-size:15px
 .chip{padding:6px 10px;border-radius:99px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;min-height:36px;font-size:14px}
 .chip.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
 .chip.dis{opacity:.4;cursor:not-allowed}
+.field{min-width:0}
+.field select{display:block;max-width:100%;min-width:0;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
+.modal{min-width:0}
+@media(min-width:1500px){body{font-size:16px}.card{padding:18px}h1{font-size:25px}}
 @media(max-width:560px){#app{padding:8px 10px 40px}h1{font-size:19px}}
 .court-svg g[role=button]:focus{outline:none}
 .court-svg g[role=button]:focus-visible .ring{opacity:1!important;stroke:#fff}
