@@ -1,0 +1,15 @@
+const store={};global.localStorage={getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v;}};
+const D=require('./data.js');let n=0;const ok=(c,m)=>{n++;if(!c){console.log('FALHOU:',m);process.exitCode=1;}};
+D.load();ok(D.D().seasons.length===1,'temporada padrão');
+const t={name:'Sesi',modality:'quadra',color:'#3b82f6'};ok(D.saveTeam(t)===null&&t.id,'cria equipe');
+ok(D.saveTeam({name:'sesi',modality:'quadra'})!==null,'nome duplicado');ok(D.saveTeam({name:'Sesi',modality:'areia'})===null,'mesmo nome em outra modalidade');
+const a={teamId:t.id,name:'Larissa',number:9,role:'Oposto',status:'titular'};ok(D.saveAthlete(a)===null,'cria atleta');
+ok(D.saveAthlete({teamId:t.id,name:'X',number:9,role:'Oposto'})!==null,'número duplicado');
+ok(D.saveAthlete({teamId:t.id,name:'X',number:100,role:'Oposto'})!==null,'número inválido');
+ok(D.saveAthlete({teamId:t.id,name:'X',number:3,role:'Goleiro'})!==null,'função inválida');
+a.number=10;ok(D.saveAthlete(a)===null&&D.find('athletes',a.id).number===10,'edita atleta');
+D.createMatch({mode:'jogo',modality:'quadra',seasonId:D.activeSeason().id});ok(D.liveMatch(),'partida em andamento');
+ok(D.deleteSeason(D.activeSeason().id)!==null,'não exclui única temporada');
+const bk=D.exportJSON();D.wipe();ok(D.D().teams.length===0,'wipe');ok(D.importJSON(bk)===null&&D.D().teams.length===2&&D.D().matches.length===1,'import backup');ok(D.importJSON('lixo')!==null,'import inválido');
+D.deleteTeam(t.id);ok(D.D().athletes.length===0,'excluir equipe remove atletas');
+console.log(n+' verificações',process.exitCode?'COM FALHAS':'OK');

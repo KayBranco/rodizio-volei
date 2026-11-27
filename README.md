@@ -1,5 +1,25 @@
 # 🏐 Rodízio de Vôlei
 
+Plataforma para **treinar, jogar e acompanhar** vôlei de quadra e de areia, com tutorial animado de rodízio.
+
+## Módulos (Home)
+- **Modo Treino**: escolha modalidade, sua equipe, o adversário e os atletas; registre saques, ataques, bloqueios, recepções, defesas, assistências e pontos.
+- **Modo Jogo**: placar, sets, rodízio real, saque, substituições, histórico de eventos, estatísticas por atleta e desfazer.
+- **Minhas Equipes / Atletas**: cadastro de equipes (nome, modalidade, cor) e atletas (nome, camisa, função tática, titular/reserva).
+- **Estatísticas e Temporadas**: histórico, totais por atleta e equipe, comparação entre períodos, várias temporadas.
+- **Tutorial e Aprendizado**: o tutorial animado de rodízio (`tutorial.html`).
+
+## Como rodar
+Abra `index.html` no navegador (não precisa instalar nada). Na Vercel: suba todos os arquivos na raiz do repositório.
+Os dados ficam no navegador (localStorage). Use **Exportar backup** na Home para guardar uma cópia.
+
+## Testes
+`node test_engine.js` e `node test_data.js` (regras e dados). Detalhes técnicos em `ARQUITETURA.md`.
+
+---
+
+# Sobre o tutorial (versão anterior)
+
 Um site para **aprender o rodízio do vôlei** vendo os jogadores se movimentarem na quadra: recebendo o saque, defendendo, levantando e atacando. Feito para iniciantes, e funciona no celular e no computador.
 
 ## Para quem é
@@ -98,10 +118,17 @@ O JavaScript está dividido em blocos:
 
 ---
 
-## Como visualizar?
+## Como rodar
 
-Abra o link: 
-https://rodizio-volei.vercel.app no navegador. Não precisa instalar nada.
+Abra o `index.html` no navegador. Não precisa instalar nada.
+
+## Como publicar na Vercel (grátis)
+
+1. Entre em [vercel.com](https://vercel.com) com a sua conta do GitHub.
+2. Clique em **Add New → Project**.
+3. Escolha este repositório e clique em **Deploy**.
+
+O arquivo `index.html` precisa ficar na raiz do repositório.
 
 ## Ideias para o futuro
 
