@@ -20,15 +20,17 @@
     const body = h('div', {}, field('Nome', name), field('Modalidade' + (isNew ? '' : ' (não pode mudar)'), mod), field('Cor', col.el), err);
     modal(isNew ? 'Nova equipe' : 'Editar equipe', body, [{ label: 'Cancelar' }, { label: 'Salvar', cls: 'pri', fn: () => {
       rec.name = name.value; rec.modality = mod.value; rec.color = col.get();
-      const e = D.saveTeam(rec); if (e) { err.textContent = e; return false; }
+      const e = D.saveTeam(rec); if (e) { err.textContent = e; toast(e, true); return false; }
       toast('Equipe salva.'); after(rec);
     } }]);
   }
 
   function athleteForm(a, teamId, after) {
     const isNew = !a, rec = a ? Object.assign({}, a) : { teamId: teamId || (D.D().teams[0] || {}).id, name: '', number: '', role: 'Ponteiro', status: 'titular' };
+    const nextNum = tid => { const used = new Set(D.teamAthletes(tid).map(x => Number(x.number))); let n = 1; while (used.has(n) && n < 99) n++; return n; };
+    if (isNew) rec.number = nextNum(rec.teamId);
     const teams = D.D().teams;
-    const team = h('select', {}, teams.map(t => opt(t.id, t.name + ' (' + (t.modality === 'areia' ? 'areia' : 'quadra') + ')', rec.teamId === t.id)));
+    const team = h('select', { onchange: () => { if (isNew) num.value = nextNum(team.value); } }, teams.map(t => opt(t.id, t.name + ' (' + (t.modality === 'areia' ? 'areia' : 'quadra') + ')', rec.teamId === t.id)));
     const name = h('input', { value: rec.name, maxlength: 30, placeholder: 'Nome do atleta' });
     const num = h('input', { type: 'number', min: 0, max: 99, value: rec.number, inputmode: 'numeric', placeholder: '0–99' });
     const role = h('select', {}, D.ROLES.map(r => opt(r, r, rec.role === r)));
@@ -38,7 +40,7 @@
       field('Função tática (não é a posição no rodízio)', role), field('Status no elenco', st), err);
     modal(isNew ? 'Novo atleta' : 'Editar atleta', body, [{ label: 'Cancelar' }, { label: 'Salvar', cls: 'pri', fn: () => {
       rec.teamId = team.value; rec.name = name.value; rec.number = num.value === '' ? NaN : num.value; rec.role = role.value; rec.status = st.value;
-      const e = D.saveAthlete(rec); if (e) { err.textContent = e; return false; }
+      const e = D.saveAthlete(rec); if (e) { err.textContent = e; toast(e, true); return false; }
       toast('Atleta salvo.'); after(rec);
     } }]);
   }

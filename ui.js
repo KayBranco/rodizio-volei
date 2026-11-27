@@ -45,8 +45,11 @@
     const box = h('div', { class: 'modal', role: 'dialog', 'aria-label': title },
       h('h2', { style: { marginTop: 0 } }, title), body,
       h('div', { class: 'row', style: { marginTop: '14px', justifyContent: 'flex-end' } },
-        (actions || []).map(a => h('button', { class: a.cls || '', onclick: () => { if (a.fn && a.fn() === false) return; close(); } }, a.label))));
-    ov.appendChild(box); ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
+        (actions || []).map(a => h('button', { class: a.cls || '', onclick: () => {
+          let r; try { r = a.fn && a.fn(); } catch (e) { console.error(e); toast('Algo deu errado: ' + e.message, true); return; }
+          if (r === false) return; close();
+        } }, a.label))));
+    ov.appendChild(box); // não fecha ao tocar fora: evita perder o que foi digitado
     document.body.appendChild(ov); const f = box.querySelector('input,select,button'); if (f) f.focus();
     return { close, box };
   }

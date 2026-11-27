@@ -82,14 +82,14 @@
       t2.textContent = snap.teams.home.name + (st.cur.serving === 'home' ? ' · saca' : '');
       const live = new Set();
       ['home', 'away'].forEach(team => {
-        const lu = st.cur.teams[team].lineup, sid = RV.Engine.serverId(st, team), isServing = st.cur.serving === team;
+        const lu = RV.Engine.courtLineup(st, team), sid = RV.Engine.serverId(st, team), isServing = st.cur.serving === team;
         lu.forEach((id, idx) => {
           live.add(id);
           let f = figs[id];
           if (!f) { f = figs[id] = figure(id, team); }
           const [x, y] = posFor(modality, team, st, idx);
           moveTo(f, x, y, true);
-          f.tag.textContent = modality === 'areia' ? (RV.Data.ROLE_ABB[(snap.players[id] || {}).role] || '') : 'P' + (idx + 1) + ' · ' + (RV.Data.ROLE_ABB[(snap.players[id] || {}).role] || '');
+          f.tag.textContent = modality === 'areia' ? (RV.Data.ROLE_ABB[(snap.players[id] || {}).role] || '') : 'P' + (idx + 1) + ((snap.players[id] || {}).role ? ' · ' + RV.Data.ROLE_ABB[snap.players[id].role] : '');
           f.srv.setAttribute('opacity', isServing && id === sid ? 1 : 0);
           f.ring.setAttribute('opacity', id === selected ? 1 : 0);
         });

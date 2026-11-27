@@ -10,8 +10,7 @@
 
   /* ============ CONFIGURAÇÃO ============ */
   RV.Screens.setup = function (root, p) {
-    const mode = p.mode, d0 = D.D();
-    const live = D.liveMatch();
+    const mode = p.mode, d0 = D.D(), live = D.liveMatch();
     if (live) {
       root.appendChild(h('div', { class: 'banner' }, h('b', {}, 'Já existe um ' + (live.mode === 'treino' ? 'treino' : 'jogo') + ' em andamento'),
         h('div', { class: 'sm-t mut', style: { margin: '4px 0 10px' } }, live.snapshot.teams.home.name + ' × ' + live.snapshot.teams.away.name + '. Termine ou descarte antes de começar outro.'),
@@ -19,89 +18,142 @@
           h('button', { class: 'dng', onclick: () => confirmBox('Descartar a partida em andamento? Os registros dela serão perdidos.', 'Descartar', () => { D.remove('matches', live.id); toast('Partida descartada.'); RV.render(); }) }, 'Descartar'))));
       return;
     }
-    const S = { modality: 'quadra', home: null, away: null, lineup: { home: [], away: [] }, bench: { home: [], away: [] }, first: 'home', target: 25, season: D.activeSeason().id };
+    const ANON = 'anon';
+    // conf por time: sys, rot, lineup[], bench[], libero
+    const S = { modality: 'quadra', team: { home: null, away: null }, anonName: 'Adversário', conf: { home: {}, away: {} }, first: 'home', target: 25, season: D.activeSeason().id };
     const box = h('div', {}); root.appendChild(box);
+    const isAnon = t => S.team[t] === ANON;
+    const athletes = t => (isAnon(t) || !S.team[t] ? [] : D.teamAthletes(S.team[t]));
+    const need = () => D.SIZE[S.modality];
 
-    function autofill(team) {
-      const t = S[team]; S.lineup[team] = []; S.bench[team] = [];
-      if (!t) return;
-      const need = D.SIZE[S.modality], all = D.teamAthletes(t);
-      const tit = all.filter(a => a.status === 'titular'), res = all.filter(a => a.status !== 'titular');
-      for (let i = 0; i < need; i++) S.lineup[team][i] = (tit[i] || '') && tit[i].id;
-      const used = S.lineup[team];
-      S.bench[team] = S.modality === 'areia' ? [] : all.filter(a => !used.includes(a.id) && a.status !== 'titular').map(a => a.id);
-      void res;
+    function autofill(t) {
+      const c = S.conf[t]; const all = athletes(t);
+      if (isAnon(t) || !all.length) { c.lineup = new Array(need()).fill(''); c.bench = []; c.libero = ''; return; }
+      if (S.modality === 'areia') {
+        const tit = all.slice().sort((a, b) => (a.status === 'titular' ? 0 : 1) - (b.status === 'titular' ? 0 : 1) || a.number - b.number);
+        c.lineup = [0, 1].map(i => (tit[i] ? tit[i].id : '')); c.bench = []; c.libero = ''; return;
+      }
+      const sys = E.SYSTEMS[c.sys];
+      const lib = sys.libero ? (all.find(a => a.role === 'Líbero') || {}).id || '' : '';
+      c.libero = lib;
+      c.lineup = E.autoLineup(c.sys, c.rot, all, lib ? [lib] : []);
+      c.bench = all.filter(a => a.id !== lib && !c.lineup.includes(a.id)).map(a => a.id);
     }
     function pickTeams() {
       const ts = d0.teams.filter(t => t.modality === S.modality);
-      if (!ts.find(t => t.id === S.home)) S.home = ts[0] ? ts[0].id : null;
-      if (!ts.find(t => t.id === S.away) || S.away === S.home) S.away = (ts.find(t => t.id !== S.home) || {}).id || null;
-      autofill('home'); autofill('away');
+      if (!ts.find(t => t.id === S.team.home)) S.team.home = ts[0] ? ts[0].id : null;
+      if (S.team.away !== ANON || mode === 'treino') {
+        if (!ts.find(t => t.id === S.team.away) || S.team.away === S.team.home) S.team.away = (ts.find(t => t.id !== S.team.home) || {}).id || (mode === 'jogo' ? ANON : null);
+      }
+      ['home', 'away'].forEach(t => { S.conf[t] = Object.assign({ sys: '5-1', rot: 1 }, { sys: S.conf[t].sys || '5-1', rot: S.conf[t].rot || 1 }); autofill(t); });
     }
     pickTeams();
 
-    function lineupEditor(team) {
-      const t = D.find('teams', S[team]); if (!t) return null;
-      const all = D.teamAthletes(t.id), need = D.SIZE[S.modality];
-      const mk = i => {
-        const sel = h('select', { 'aria-label': (S.modality === 'areia' ? 'Atleta ' + (i + 1) : 'Posição P' + (i + 1)) + ' ' + t.name, onchange: () => {
-          S.lineup[team][i] = sel.value; S.bench[team] = S.bench[team].filter(id => id !== sel.value); draw();
-        } }, opt('', '— escolher —', !S.lineup[team][i]), all.map(a => opt(a.id, '#' + a.number + ' ' + a.name + ' (' + abb(a.role) + ')', S.lineup[team][i] === a.id)));
-        return h('div', { class: 'field', style: { margin: '4px 0' } }, h('label', {}, S.modality === 'areia' ? (i === 0 ? 'Atleta 1 · saca primeiro' : 'Atleta 2') : 'P' + (i + 1)), sel);
+    function keepScroll(fn) { const y = window.scrollY; fn(); window.scrollTo(0, y); }
+
+    function teamCard(t) {
+      const c = S.conf[t], label = t === 'home' ? 'Time A · sua equipe' : 'Time B · adversário';
+      if (isAnon(t)) {
+        const nm = h('input', { value: S.anonName, maxlength: 30, placeholder: 'Nome do adversário (opcional)', oninput: () => { S.anonName = nm.value; } });
+        return h('div', { class: 'card' }, h('h3', {}, label), field('Nome do adversário (opcional)', nm),
+          h('p', { class: 'sm-t mut', style: { margin: 0 } }, 'Sem cadastro: o adversário entra só com o placar, o saque e o rodízio. Você registra os pontos dele com "+1" e as estatísticas dos seus atletas continuam completas. As ações do adversário não são registradas por atleta.'));
+      }
+      const team = D.find('teams', S.team[t]); if (!team) return h('div', { class: 'card' }, label);
+      const all = athletes(t), beach = S.modality === 'areia';
+      const byId = id => all.find(a => a.id === id);
+      const head = [h('h3', {}, h('span', { class: 'dot', style: { background: team.color } }), label + ': ' + team.name)];
+      if (!beach) {
+        const sysSel = h('select', { 'aria-label': 'Sistema ' + team.name, onchange: () => { c.sys = sysSel.value; autofill(t); keepScroll(draw); } }, Object.keys(E.SYSTEMS).map(k => opt(k, E.SYSTEMS[k].label, c.sys === k)));
+        const rotSel = h('select', { 'aria-label': 'Rotação inicial ' + team.name, onchange: () => { c.rot = Number(rotSel.value); autofill(t); keepScroll(draw); } }, [1, 2, 3, 4, 5, 6].map(r => opt(String(r), 'R' + r, c.rot === r)));
+        head.push(h('div', { class: 'grid', style: { gridTemplateColumns: '1fr 1fr', gap: '8px' } }, field('Sistema', sysSel), field('Rotação inicial', rotSel)));
+        head.push(h('div', { class: 'sm-t mut', style: { marginBottom: '6px' } }, E.SYSTEMS[c.sys].text + ' A escalação abaixo já segue o tutorial; você pode trocar atletas.'));
+      }
+      const setSlot = (i, id) => {
+        const lu = c.lineup, prev = lu[i], from = lu.indexOf(id);
+        if (id && from >= 0 && from !== i) lu[from] = prev; // troca de lugar entre dois
+        else if (prev && !c.bench.includes(prev) && prev !== c.libero) c.bench.push(prev);
+        lu[i] = id; c.bench = c.bench.filter(x => lu.indexOf(x) < 0 && x !== c.libero);
+        if (id === c.libero) c.libero = '';
+        keepScroll(draw);
       };
-      let grid;
-      if (S.modality === 'areia') grid = h('div', { class: 'grid', style: { gridTemplateColumns: '1fr 1fr' } }, mk(0), mk(1));
-      else grid = h('div', {}, h('div', { class: 'sm-t mut' }, 'Rede ▲'), h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(3,1fr)', gap: '6px' } }, [3, 2, 1, 4, 5, 0].map(mk)));
-      const benchOpts = all.filter(a => !S.lineup[team].includes(a.id));
-      const bench = S.modality === 'areia' ? null : h('div', {}, h('div', { class: 'lbl mut sm-t', style: { margin: '10px 0 4px' } }, 'Banco (substituições)'),
-        benchOpts.length ? h('div', { class: 'chips' }, benchOpts.map(a => h('span', { class: 'chip' + (S.bench[team].includes(a.id) ? ' on' : ''), role: 'checkbox', 'aria-checked': S.bench[team].includes(a.id), tabindex: 0,
-          onclick: () => { const b = S.bench[team], i = b.indexOf(a.id); if (i < 0) b.push(a.id); else b.splice(i, 1); draw(); } }, '#' + a.number + ' ' + a.name))) : h('div', { class: 'sm-t mut' }, 'Sem outros atletas cadastrados.'));
-      void need;
-      return h('div', { class: 'card' }, h('h3', {}, h('span', { class: 'dot', style: { background: t.color } }), (team === 'home' ? 'Sua equipe: ' : 'Adversário: ') + t.name), grid, bench);
+      const mk = i => {
+        const sel = h('select', { 'aria-label': (beach ? 'Atleta ' + (i + 1) : 'Posição P' + (i + 1)) + ' ' + team.name, onchange: () => setSlot(i, sel.value) },
+          opt('', '— escolher —', !c.lineup[i]), all.map(a => opt(a.id, '#' + a.number + ' ' + a.name + ' (' + abb(a.role) + ')', c.lineup[i] === a.id)));
+        return h('div', { class: 'field', style: { margin: '4px 0' } }, h('label', {}, beach ? (i === 0 ? 'Atleta 1 · saca primeiro' : 'Atleta 2') : 'P' + (i + 1)), sel);
+      };
+      const grid = beach ? h('div', { class: 'grid', style: { gridTemplateColumns: '1fr 1fr' } }, mk(0), mk(1))
+        : h('div', {}, h('div', { class: 'sm-t mut' }, 'Rede ▲'), h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(3,1fr)', gap: '6px' } }, [3, 2, 1, 4, 5, 0].map(mk)));
+      const parts = head.concat([grid]);
+      if (!beach) {
+        const warns = E.checkLineup(c.sys, c.rot, c.lineup.map(id => (byId(id) || {}).role || ''));
+        if (warns.length) parts.push(h('div', { class: 'sm-t', style: { color: 'var(--gold)', marginTop: '8px' } }, warns.map(w => h('div', {}, '⚠ ' + w)), h('button', { class: 'sm', style: { marginTop: '6px' }, onclick: () => { autofill(t); keepScroll(draw); } }, 'Reorganizar pelo tutorial')));
+        if (E.SYSTEMS[c.sys].libero) {
+          const cands = all.filter(a => !c.lineup.includes(a.id)).sort((a, b) => (b.role === 'Líbero') - (a.role === 'Líbero'));
+          const ls = h('select', { 'aria-label': 'Líbero ' + team.name, onchange: () => { c.libero = ls.value; c.bench = c.bench.filter(x => x !== c.libero); keepScroll(draw); } },
+            opt('', 'Sem líbero', !c.libero), cands.map(a => opt(a.id, '#' + a.number + ' ' + a.name + (a.role === 'Líbero' ? '' : ' (' + abb(a.role) + ')'), c.libero === a.id)));
+          parts.push(field('Líbero (entra no lugar do central no fundo, P5/P6)', ls));
+        } else parts.push(h('div', { class: 'sm-t mut', style: { marginTop: '8px' } }, 'O 4-2 não usa líbero.'));
+        const benchOpts = all.filter(a => !c.lineup.includes(a.id) && a.id !== c.libero);
+        parts.push(h('div', { class: 'lbl mut sm-t', style: { margin: '10px 0 4px' } }, 'Banco (substituições)'));
+        parts.push(benchOpts.length ? h('div', { class: 'chips' }, benchOpts.map(a => h('span', { class: 'chip' + (c.bench.includes(a.id) ? ' on' : ''), role: 'checkbox', 'aria-checked': c.bench.includes(a.id), tabindex: 0,
+          onclick: () => { const i = c.bench.indexOf(a.id); if (i < 0) c.bench.push(a.id); else c.bench.splice(i, 1); keepScroll(draw); } }, '#' + a.number + ' ' + a.name))) : h('div', { class: 'sm-t mut' }, 'Sem outros atletas.'));
+      }
+      return h('div', { class: 'card' }, parts);
     }
 
     function draw() {
       box.innerHTML = '';
-      const ts = d0.teams.filter(t => t.modality === S.modality);
-      const modSel = h('select', { onchange: () => { S.modality = modSel.value; S.home = S.away = null; pickTeams(); draw(); } }, Object.keys(D.MODALITIES).map(k => opt(k, D.MODALITIES[k], S.modality === k)));
+      const ts = d0.teams.filter(t => t.modality === S.modality), minTeams = mode === 'treino' ? 2 : 1;
+      const modSel = h('select', { onchange: () => { S.modality = modSel.value; S.team.home = S.team.away = null; pickTeams(); keepScroll(draw); } }, Object.keys(D.MODALITIES).map(k => opt(k, D.MODALITIES[k], S.modality === k)));
       box.appendChild(h('div', { class: 'card' }, field('Modalidade', modSel)));
-      if (ts.length < 2) {
-        box.appendChild(h('div', { class: 'empty', style: { marginTop: '12px' } }, 'Você precisa de pelo menos 2 equipes de ' + D.MODALITIES[S.modality].toLowerCase() + ' (a sua e a do adversário). Há ' + ts.length + ' cadastrada(s).',
+      if (ts.length < minTeams) {
+        box.appendChild(h('div', { class: 'empty', style: { marginTop: '12px' } }, mode === 'treino' ? 'O treino precisa de 2 equipes de ' + D.MODALITIES[S.modality].toLowerCase() + ' (a sua e a do adversário). Há ' + ts.length + ' cadastrada(s).' : 'Cadastre pelo menos a sua equipe de ' + D.MODALITIES[S.modality].toLowerCase() + '. O adversário pode ficar sem cadastro.',
           h('div', { style: { marginTop: '10px' } }, h('button', { class: 'pri', onclick: () => RV.go('equipes') }, 'Ir para Minhas Equipes'))));
         return;
       }
-      const hs = h('select', { onchange: () => { S.home = hs.value; if (S.away === S.home) S.away = (ts.find(t => t.id !== S.home) || {}).id; autofill('home'); autofill('away'); draw(); } }, ts.map(t => opt(t.id, t.name, S.home === t.id)));
-      const as = h('select', { onchange: () => { S.away = as.value; if (S.home === S.away) S.home = (ts.find(t => t.id !== S.away) || {}).id; autofill('home'); autofill('away'); draw(); } }, ts.map(t => opt(t.id, t.name, S.away === t.id)));
-      box.appendChild(h('div', { class: 'grid g2', style: { marginTop: '12px' } }, h('div', { class: 'card' }, field('Sua equipe (embaixo)', hs)), h('div', { class: 'card' }, field('Equipe adversária (em cima)', as))));
-      box.appendChild(h('div', { class: 'grid g2', style: { marginTop: '12px' } }, lineupEditor('home'), lineupEditor('away')));
-      const fs = h('select', { onchange: () => { S.first = fs.value; } }, opt('home', D.find('teams', S.home).name, S.first === 'home'), opt('away', D.find('teams', S.away).name, S.first === 'away'));
+      const hs = h('select', { onchange: () => { S.team.home = hs.value; if (S.team.away === S.team.home) S.team.away = (ts.find(t => t.id !== S.team.home) || {}).id || ANON; pickTeams(); keepScroll(draw); } }, ts.map(t => opt(t.id, t.name, S.team.home === t.id)));
+      const aOpts = ts.filter(t => t.id !== S.team.home).map(t => opt(t.id, t.name, S.team.away === t.id));
+      if (mode === 'jogo') aOpts.push(opt(ANON, 'Sem cadastro (só o nome)', S.team.away === ANON));
+      const as = h('select', { onchange: () => { S.team.away = as.value; autofill('away'); keepScroll(draw); } }, aOpts);
+      box.appendChild(h('div', { class: 'grid g2', style: { marginTop: '12px' } }, h('div', { class: 'card' }, field('Time A · sua equipe (embaixo)', hs)), h('div', { class: 'card' }, field('Time B · adversário (em cima)', as))));
+      box.appendChild(h('div', { class: 'grid g2', style: { marginTop: '12px' } }, teamCard('home'), teamCard('away')));
+      const nameOf = t => (isAnon(t) ? (S.anonName.trim() || 'Adversário') : D.find('teams', S.team[t]).name);
+      const fs = h('select', { onchange: () => { S.first = fs.value; } }, opt('home', nameOf('home'), S.first === 'home'), opt('away', nameOf('away'), S.first === 'away'));
       const seas = h('select', { onchange: () => { S.season = seas.value; } }, D.D().seasons.map(s => opt(s.id, s.name, S.season === s.id)));
       const tgt = h('input', { type: 'number', min: 1, max: 99, value: S.target, oninput: () => { S.target = Number(tgt.value) || 25; } });
       box.appendChild(h('div', { class: 'card', style: { marginTop: '12px' } }, h('div', { class: 'grid g2' }, field('Quem saca primeiro', fs), field('Temporada', seas), mode === 'treino' ? field('Meta de pontos do treino (referência)', tgt) : null),
         h('p', { class: 'sm-t mut', style: { margin: '8px 0 0' } }, S.modality === 'areia'
-          ? 'Areia: 2 atletas por dupla, sem substituições e sem rodízio. O saque alterna entre os dois a cada vez que a dupla recupera o saque. Sets de 21 (o 3º de 15), vence quem abrir 2 pontos, melhor de 3.'
-          : 'Quadra: 6 em quadra (P1 é o sacador). Quem ganha o rally sacando pontua e continua sacando; quem recebe e ganha pontua, assume o saque e gira um posto no sentido horário. Sets de 25 (o 5º de 15), diferença de 2, melhor de 5.')));
-      const err = h('div', { class: 'err' });
-      box.appendChild(err);
-      box.appendChild(h('button', { class: 'pri', style: { width: '100%', marginTop: '6px', minHeight: '48px' }, onclick: start }, mode === 'treino' ? 'Iniciar treino' : 'Iniciar jogo'));
-      function start() {
-        const need = D.SIZE[S.modality];
-        for (const team of ['home', 'away']) {
-          const lu = S.lineup[team], nm = D.find('teams', S[team]).name;
-          if (lu.length < need || lu.some(x => !x)) { err.textContent = nm + ': escolha ' + need + ' atletas em quadra' + (need === 6 ? ' (P1 a P6)' : '') + '.'; return; }
-          if (new Set(lu).size !== lu.length) { err.textContent = nm + ': o mesmo atleta aparece duas vezes.'; return; }
+          ? 'Areia: 2 atletas por dupla, sem substituições e sem rodízio. O saque alterna entre os dois a cada vez que a dupla recupera o saque. Sets de 21 (o 3º de 15), diferença de 2, melhor de 3.'
+          : 'Quadra: P1 é o sacador. Quem ganha o rally sacando pontua e continua sacando, sem rodar; quem recebe e ganha pontua, assume o saque e gira um posto no sentido horário. Sets de 25 (o 5º de 15), diferença de 2, melhor de 5.')));
+      const err = h('div', { class: 'err' }); box.appendChild(err);
+      box.appendChild(h('button', { class: 'pri', style: { width: '100%', marginTop: '6px', minHeight: '48px' }, onclick: () => { const e = start(); if (e) { err.textContent = e; toast(e, true); } } }, mode === 'treino' ? 'Iniciar treino' : 'Iniciar jogo'));
+    }
+
+    function start() {
+      const n = need(), cfg = { modality: S.modality, mode, target: S.target, firstServe: S.first, teams: {} };
+      const snapshot = { teams: {}, players: {} };
+      for (const t of ['home', 'away']) {
+        const c = S.conf[t];
+        if (isAnon(t)) {
+          const ids = []; for (let i = 1; i <= n; i++) { ids.push('adv' + i); snapshot.players['adv' + i] = { name: 'Adv', number: '–', role: '', team: t, anon: true }; }
+          cfg.teams[t] = { lineup: ids, bench: [], anon: true };
+          snapshot.teams[t] = { id: null, name: S.anonName.trim() || 'Adversário', color: '#ef4444', anon: true };
+          continue;
         }
-        const cfg = { modality: S.modality, mode, target: S.target, firstServe: S.first, teams: { home: { lineup: S.lineup.home.slice(), bench: S.bench.home.slice() }, away: { lineup: S.lineup.away.slice(), bench: S.bench.away.slice() } } };
-        const snapshot = { teams: {}, players: {} };
-        ['home', 'away'].forEach(team => {
-          const t = D.find('teams', S[team]); snapshot.teams[team] = { id: t.id, name: t.name, color: t.color };
-          cfg.teams[team].lineup.concat(cfg.teams[team].bench).forEach(id => { const a = D.find('athletes', id); snapshot.players[id] = { name: a.name, number: a.number, role: a.role, team }; });
-        });
-        // o time visitante e o mandante podem ter a mesma cor: diferencia
-        if (snapshot.teams.home.color === snapshot.teams.away.color) snapshot.teams.away.color = '#ef4444' === snapshot.teams.home.color ? '#f59e0b' : '#ef4444';
-        const rec = D.createMatch({ mode, modality: S.modality, seasonId: S.season, cfg, snapshot });
-        RV.go('live/' + rec.id);
+        const team = D.find('teams', S.team[t]), lu = c.lineup;
+        if (lu.length < n || lu.some(x => !x)) return team.name + ': escolha ' + n + ' atletas em quadra' + (n === 6 ? ' (P1 a P6)' : '') + '.';
+        if (new Set(lu).size !== lu.length) return team.name + ': o mesmo atleta aparece duas vezes.';
+        if (c.libero && lu.includes(c.libero)) return team.name + ': o líbero não pode estar também entre os 6.';
+        const all = athletes(t), ids = lu.concat(c.bench, c.libero ? [c.libero] : []);
+        cfg.teams[t] = { lineup: lu.slice(), bench: c.bench.slice(), system: n === 6 ? c.sys : null, rot: n === 6 ? c.rot : null };
+        if (c.libero) { cfg.teams[t].libero = c.libero; cfg.teams[t].centrals = all.filter(a => a.role === 'Central').map(a => a.id); }
+        snapshot.teams[t] = { id: team.id, name: team.name, color: team.color };
+        ids.forEach(id => { const a = D.find('athletes', id); snapshot.players[id] = { name: a.name, number: a.number, role: a.role, team: t }; });
       }
+      if (snapshot.teams.home.color === snapshot.teams.away.color) snapshot.teams.away.color = snapshot.teams.home.color === '#ef4444' ? '#f59e0b' : '#ef4444';
+      const rec = D.createMatch({ mode, modality: S.modality, seasonId: S.season, cfg, snapshot });
+      RV.go('live/' + rec.id);
+      return null;
     }
     draw();
   };
@@ -146,7 +198,7 @@
 
     function compute() { R = E.replayTrace(cfg, rec.events); }
     const nameOf = id => (snap.players[id] ? snap.players[id].name : '?');
-    const posOf = (st, team, id) => st.cur.teams[team].lineup.indexOf(id);
+    const posOf = (st, team, id) => E.courtLineup(st, team).indexOf(id);
 
     function persist() { D.saveMatch(); }
     function add(ev) {
@@ -160,6 +212,7 @@
     function undo() { if (!rec.events.length) return; rec.events.pop(); persist(); compute(); refresh(); toast('Último registro desfeito.'); }
 
     const court = RV.Court.create(courtBox, cfg.modality, { onSelect: (team, id) => {
+      if (snap.players[id] && snap.players[id].anon) return toast('Adversário sem cadastro: registre os pontos dele com "+1".', true);
       if (R.st.phase === 'setEnd' || R.st.phase === 'over') return toast('O set terminou. Use "Próximo set" ou finalize.', true);
       sel = { team, id }; court.select(id); drawSheet(); } });
 
@@ -268,7 +321,8 @@
       stats.innerHTML = '';
       const body = h('div', { class: 'scroll' });
       ['home', 'away'].forEach(t => {
-        const ids = cfg.teams[t].lineup.concat(cfg.teams[t].bench);
+        if (cfg.teams[t].anon) return;
+        const ids = E.allIds(cfg, t);
         const rows = ids.map(id => { const s = R.st.stats[id]; return h('tr', {}, h('td', {}, '#' + snap.players[id].number + ' ' + snap.players[id].name), STAT_COLS.map(([k]) => h('td', {}, k === 'pts' ? E.totalPoints(s) : s[k]))); });
         body.appendChild(h('div', { class: 'lbl mut sm-t', style: { margin: '10px 0 4px', color: snap.teams[t].color } }, snap.teams[t].name));
         body.appendChild(h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, h('th', {}, 'Atleta'), STAT_COLS.map(([, l]) => h('th', {}, l)))), h('tbody', {}, rows)));

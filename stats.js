@@ -29,11 +29,12 @@
       const st = replayOf(m).st;
       ['home', 'away'].forEach(t => {
         const info = m.snapshot.teams[t], tid = info.id;
+        if (info.anon) return; // adversário sem cadastro: sem estatísticas próprias
         const T = teams[tid] || (teams[tid] = { id: tid, name: info.name, color: info.color, games: 0, wins: 0, losses: 0, setsW: 0, setsL: 0, stats: E.emptyStats() });
         T.name = info.name; T.games++;
         if (m.mode === 'jogo' && m.result && m.result.complete) { if (m.result.winner === t) T.wins++; else T.losses++; }
         if (m.mode === 'jogo') { T.setsW += st.sets[t]; T.setsL += st.sets[E.other(t)]; }
-        m.cfg.teams[t].lineup.concat(m.cfg.teams[t].bench).forEach(id => {
+        E.allIds(m.cfg, t).forEach(id => {
           const s = st.stats[id]; if (!s) return;
           const p = m.snapshot.players[id];
           const A = ath[id] || (ath[id] = { id, name: p.name, number: p.number, role: p.role, teamId: tid, teamName: info.name, games: 0, stats: E.emptyStats() });
@@ -75,7 +76,8 @@
         h('button', { class: 'sm', onclick: () => moveDialog(m) }, 'Mudar temporada'),
         h('button', { class: 'sm dng', onclick: () => confirmBox('Excluir este registro e suas estatísticas?', 'Excluir', () => { D.remove('matches', m.id); toast('Registro excluído.'); RV.go('estatisticas'); }) }, 'Excluir registro'))));
     ['home', 'away'].forEach(t => {
-      const ids = m.cfg.teams[t].lineup.concat(m.cfg.teams[t].bench), tot = E.derive(st)[t];
+      if (m.cfg.teams[t].anon) return root.appendChild(h('div', { class: 'card', style: { marginTop: '12px' } }, h('h3', { style: { color: snap.teams[t].color } }, snap.teams[t].name), h('div', { class: 'sm-t mut' }, 'Adversário sem cadastro: só o placar foi registrado.')));
+      const ids = E.allIds(m.cfg, t), tot = E.derive(st)[t];
       root.appendChild(h('div', { class: 'card', style: { marginTop: '12px' } }, h('h3', { style: { color: snap.teams[t].color } }, snap.teams[t].name),
         h('div', { class: 'scroll' }, h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, h('th', {}, 'Atleta'), th())),
           h('tbody', {}, ids.map(id => h('tr', {}, h('td', {}, '#' + snap.players[id].number + ' ' + snap.players[id].name), statCells(st.stats[id]))),

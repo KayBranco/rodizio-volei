@@ -73,3 +73,35 @@ eq(E.replay(cfg('quadra'),evs.slice(0,1)).cur.score,{home:1,away:0},'undo');
 // replay determinístico
 eq(E.replay(cfg('quadra'),evs).cur,E.replay(cfg('quadra'),evs).cur,'determinístico');
 console.log(n+' verificações',process.exitCode?'COM FALHAS':'OK');
+// ---- sistemas / líbero ----
+{
+ const R=[{id:'lev',role:'Levantador',status:'titular',number:1},{id:'opo',role:'Oposto',status:'titular',number:2},{id:'p1',role:'Ponteiro',status:'titular',number:3},{id:'p2',role:'Ponteiro',status:'titular',number:4},{id:'c1',role:'Central',status:'titular',number:5},{id:'c2',role:'Central',status:'titular',number:6},{id:'lib',role:'Líbero',status:'reserva',number:7}];
+ const role=id=>(R.find(a=>a.id===id)||{}).role;
+ // 5-1 R1 = tutorial: P1 S, P2 OH1, P3 MB1, P4 OP, P5 OH2, P6 MB2
+ eq(E.autoLineup('5-1',1,R,['lib']),['lev','p1','c1','opo','p2','c2'],'5-1 R1 igual ao tutorial');
+ for(const sys of ['5-1','6-2','4-2','6-0'])for(let r=1;r<=6;r++){
+  const R2=sys==='6-2'||sys==='4-2'?R.map(a=>a.id==='opo'?{...a,role:'Levantador'}:a):R;
+  const L=E.autoLineup(sys,r,R2,['lib']);ok(new Set(L).size===6&&L.every(Boolean),sys+' R'+r+' 6 distintos');
+  const ro=L.map(id=>R2.find(a=>a.id===id).role);ok(E.checkLineup(sys,r,ro).length===0,sys+' R'+r+' sem avisos');
+  if(sys!=='6-0'&&sys!=='4-2'){ // diagonais: P1-P4, P2-P5, P3-P6 mesma função (5-1: lev×opo)
+   [[0,3],[1,4],[2,5]].forEach(([a,b])=>{const x=ro[a],y=ro[b];ok(x===y||(sys==='5-1'&&[x,y].sort().join()==='Levantador,Oposto'),sys+' R'+r+' diagonal '+a+'-'+b);});
+  }
+ }
+ // rotação do engine reproduz autoLineup da rotação seguinte
+ const cfgQ={modality:'quadra',mode:'jogo',firstServe:'home',teams:{home:{lineup:E.autoLineup('5-1',1,R,['lib']),bench:[],libero:'lib',centrals:['c1','c2']},away:{lineup:['a1','a2','a3','a4','a5','a6'],bench:[]}}};
+ let stx=E.replay(cfgQ,[]);let cnt=0;
+ for(let r=2;r<=6;r++){E.apply(stx,{id:'x'+r,type:'action',team:'away',action:'point'});E.apply(stx,{id:'y'+r,type:'action',team:'home',action:'point'});
+   // visitante marca (saca), mandante recupera -> gira 1x
+   eq(stx.cur.teams.home.lineup.map(role),E.autoLineup('5-1',r,R,['lib']).map(role),'engine gira = funções da rotação '+r);}
+ // 4-2: levantadores em diagonal
+ for(let r=1;r<=6;r++){const R4=R.map(a=>a.id==='opo'?{...a,role:'Levantador'}:a);const ro=E.autoLineup('4-2',r,R4,['lib']).map(id=>R4.find(a=>a.id===id).role);ok(ro.map((x,i)=>x==='Levantador'?i:-1).filter(i=>i>=0).sort().join()==='0,3'||ro.map((x,i)=>x==='Levantador'?i:-1).filter(i=>i>=0).sort((a,b)=>a-b).reduce((d,x,_,arr)=>Math.abs(arr[1]-arr[0])===3,false),'4-2 levantadores em diagonal R'+r);}
+ // líbero: em P5/P6 substitui central, e nunca fica ao lado do outro central; só 1 líbero por vez
+ for(let r=1;r<=6;r++){const s2=E.replay({...cfgQ,teams:{...cfgQ.teams,home:{...cfgQ.teams.home,lineup:E.autoLineup('5-1',r,R,['lib'])}}},[]);
+  const cl=E.courtLineup(s2,'home');ok(cl.filter(x=>x==='lib').length<=1,'1 líbero no máx R'+r);
+  const li=cl.indexOf('lib');if(li>=0){ok(li===4||li===5,'líbero só em P5/P6 R'+r);const other=s2.cur.teams.home.lineup[(li+3)%6];ok(other==='c1'||other==='c2','central em diagonal do líbero R'+r);}
+  ok(cl[0]!=='lib','líbero nunca saca R'+r);}
+ // líbero pode registrar ação; central substituído não
+ const s3=E.replay({...cfgQ,teams:{...cfgQ.teams,home:{...cfgQ.teams.home,lineup:E.autoLineup('5-1',1,R,['lib'])}}},[{id:1,type:'action',team:'home',action:'dig',athleteId:'lib'},{id:2,type:'action',team:'home',action:'dig',athleteId:'c2'}]);
+ eq(s3.stats.lib.digs,1,'líbero registra defesa');ok(s3.errors.length===1,'central substituído não age');
+}
+console.log(n+' verificações (com sistemas)',process.exitCode?'COM FALHAS':'OK');

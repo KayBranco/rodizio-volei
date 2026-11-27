@@ -46,6 +46,64 @@
   // Rodízio horário: P2→P1, P1→P6, P6→P5, P5→P4, P4→P3, P3→P2.  lineup[0]=P1 … lineup[5]=P6
   function rotate(l) { return [l[1], l[2], l[3], l[4], l[5], l[0]]; }
 
+  /* ---- escalação por sistema (mesma regra do tutorial) ----
+   * Posições iniciais (R1) por função: P1..P6. Na rotação r, quem começou em s0 está em slotAfter(s0, r).
+   * Em todos os sistemas os pares em diagonal são P1–P4, P2–P5, P3–P6: levantador × oposto (ou 2º levantador),
+   * ponteiro × ponteiro, central × central. */
+  const ORDER = [1, 6, 5, 4, 3, 2];
+  const slotAfter = (s0, rot) => ORDER[(ORDER.indexOf(s0) + rot - 1) % 6];
+  const SYSTEMS = {
+    '5-1': { label: '5-1', libero: true,  start: { 1: 'LEV', 2: 'PON', 3: 'CEN', 4: 'OPO', 5: 'PON', 6: 'CEN' }, text: '1 levantador, 1 oposto, 2 ponteiros e 2 centrais.' },
+    '6-2': { label: '6-2', libero: true,  start: { 1: 'LEV', 2: 'PON', 3: 'CEN', 4: 'LEV', 5: 'PON', 6: 'CEN' }, text: '2 levantadores (o do fundo levanta), 2 ponteiros e 2 centrais.' },
+    '4-2': { label: '4-2', libero: false, start: { 1: 'LEV', 2: 'ATK', 3: 'ATK', 4: 'LEV', 5: 'ATK', 6: 'ATK' }, text: '2 levantadores (o da rede levanta) e 4 atacantes. Sem líbero.' },
+    '6-0': { label: '6-0', libero: true,  start: { 1: 'ANY', 2: 'ANY', 3: 'ANY', 4: 'ANY', 5: 'ANY', 6: 'ANY' }, text: 'Todos levantam quando passam pela rede. Sem funções fixas.' }
+  };
+  const ACCEPT = { // preferência de função para cada vaga
+    LEV: ['Levantador', 'Universal'], OPO: ['Oposto', 'Universal'], CEN: ['Central', 'Universal'],
+    PON: ['Ponteiro', 'Universal'], ATK: ['Ponteiro', 'Oposto', 'Universal', 'Central'], ANY: null
+  };
+  const CAT_LABEL = { LEV: 'Levantador', OPO: 'Oposto', CEN: 'Central', PON: 'Ponteiro', ATK: 'Atacante', ANY: 'qualquer' };
+  // função esperada em cada posição (índice 0 = P1) numa rotação
+  function expectedRoles(sys, rot) {
+    const out = [];
+    for (let s0 = 1; s0 <= 6; s0++) out[slotAfter(s0, rot) - 1] = SYSTEMS[sys].start[s0];
+    return out;
+  }
+  // atletas: [{id, role, status, number}] -> 6 ids por posição ('' se faltar)
+  function autoLineup(sys, rot, athletes, excludeIds) {
+    const ex = new Set(excludeIds || []);
+    const pool = athletes.filter(a => !ex.has(a.id)).sort((a, b) => (a.status === 'titular' ? 0 : 1) - (b.status === 'titular' ? 0 : 1) || a.number - b.number);
+    const exp = expectedRoles(sys, rot), res = ['', '', '', '', '', ''], used = new Set();
+    const prio = ['LEV', 'OPO', 'CEN', 'PON', 'ATK', 'ANY'];
+    prio.forEach(cat => exp.forEach((c, pos) => {
+      if (c !== cat) return;
+      const acc = ACCEPT[cat];
+      let pick = null;
+      if (acc) for (const r of acc) { pick = pool.find(a => !used.has(a.id) && a.role === r); if (pick) break; }
+      if (!pick) pick = pool.find(a => !used.has(a.id));
+      if (pick) { used.add(pick.id); res[pos] = pick.id; }
+    }));
+    return res;
+  }
+  // avisos (não bloqueiam) sobre a escalação em relação ao sistema/rotação. roles: 6 funções por posição
+  function checkLineup(sys, rot, roles) {
+    const exp = expectedRoles(sys, rot), w = [];
+    exp.forEach((c, i) => {
+      const acc = ACCEPT[c]; if (!acc || !roles[i]) return;
+      if (acc.indexOf(roles[i]) < 0) w.push('P' + (i + 1) + ': o ' + sys + ' pede ' + CAT_LABEL[c].toLowerCase() + ' aqui, mas está ' + roles[i].toLowerCase() + '.');
+    });
+    return w;
+  }
+  const allIds = (cfg, t) => cfg.teams[t].lineup.concat(cfg.teams[t].bench, cfg.teams[t].libero ? [cfg.teams[t].libero] : []);
+  // quem está de fato em quadra: o líbero entra no lugar do central que estiver em P5/P6 (um por vez)
+  function courtLineup(st, team) {
+    const L = st.cur.teams[team].lineup.slice(), c = st.cfg.teams[team];
+    if (c.libero && L.length === 6) {
+      for (const i of [4, 5]) if ((c.centrals || []).indexOf(L[i]) >= 0) { L[i] = c.libero; break; }
+    }
+    return L;
+  }
+
   function freshSet(cfg, setNo, firstServe) {
     const teams = {};
     ['home', 'away'].forEach(t => {
@@ -65,7 +123,7 @@
 
   function initState(cfg) {
     const stats = {};
-    ['home', 'away'].forEach(t => cfg.teams[t].lineup.concat(cfg.teams[t].bench).forEach(id => { stats[id] = emptyStats(); }));
+    ['home', 'away'].forEach(t => allIds(cfg, t).forEach(id => { stats[id] = emptyStats(); }));
     const first = cfg.firstServe || 'home';
     return {
       cfg, cur: freshSet(cfg, 1, first), done: [], sets: { home: 0, away: 0 },
@@ -79,7 +137,7 @@
     if (st.cfg.modality === 'areia') { const c = s.srv[team].cur; return c == null ? null : s.teams[team].lineup[c]; }
     return s.teams[team].lineup[0];
   }
-  const onCourt = (st, id) => ['home', 'away'].find(t => st.cur.teams[t].lineup.indexOf(id) >= 0) || null;
+  const onCourt = (st, id) => ['home', 'away'].find(t => courtLineup(st, t).indexOf(id) >= 0) || null;
 
   // devolve null se válido, ou mensagem de erro
   function validate(st, ev) {
@@ -100,7 +158,7 @@
     if (!a) return 'Ação desconhecida.';
     if (!ev.team || !s.teams[ev.team]) return 'Equipe inválida.';
     if (ev.athleteId) {
-      if (s.teams[ev.team].lineup.indexOf(ev.athleteId) < 0) return 'O atleta precisa estar em quadra.';
+      if (courtLineup(st, ev.team).indexOf(ev.athleteId) < 0) return 'O atleta precisa estar em quadra.';
     } else if (ev.action !== 'point') return 'Escolha o atleta.';
     if (a.who === 'server' && ev.team !== s.serving) return 'Só a equipe que saca pode registrar saques.';
     if (a.who === 'server' && ev.athleteId && ev.athleteId !== serverId(st, ev.team)) return 'Só o sacador atual pode registrar o saque.';
@@ -189,13 +247,12 @@
   function derive(st) { // totais por equipe a partir dos atletas
     const teams = { home: emptyStats(), away: emptyStats() };
     ['home', 'away'].forEach(t => {
-      const ids = st.cfg.teams[t].lineup.concat(st.cfg.teams[t].bench);
-      ids.forEach(id => STAT_KEYS.forEach(k => { teams[t][k] += st.stats[id][k]; }));
+      allIds(st.cfg, t).forEach(id => STAT_KEYS.forEach(k => { teams[t][k] += st.stats[id][k]; }));
     });
     return teams;
   }
 
-  const api = { ACTIONS, STAT_KEYS, MAX_SUBS, emptyStats, totalPoints, other, rules, setsToWin, rotate, initState, validate, apply, nextSet, replay, replayTrace, derive, serverId, onCourt };
+  const api = { SYSTEMS, ORDER, slotAfter, expectedRoles, autoLineup, checkLineup, allIds, courtLineup, ACTIONS, STAT_KEYS, MAX_SUBS, emptyStats, totalPoints, other, rules, setsToWin, rotate, initState, validate, apply, nextSet, replay, replayTrace, derive, serverId, onCourt };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   (root.RV = root.RV || {}).Engine = api;
 })(typeof window !== 'undefined' ? window : globalThis);
