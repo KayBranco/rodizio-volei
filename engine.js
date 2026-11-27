@@ -107,7 +107,7 @@
   function freshSet(cfg, setNo, firstServe) {
     const teams = {};
     ['home', 'away'].forEach(t => {
-      teams[t] = { lineup: cfg.teams[t].lineup.slice(), bench: cfg.teams[t].bench.slice(), subs: 0, subPairs: [], rotN: 0 };
+      teams[t] = { lineup: cfg.teams[t].lineup.slice(), bench: cfg.teams[t].bench.slice(), subs: 0, subPairs: [], rotN: 0, servedFirst: t === firstServe };
     });
     return {
       no: setNo, score: { home: 0, away: 0 }, serving: firstServe, firstServe,
@@ -185,6 +185,9 @@
       s.serving = team;
       if (st.cfg.modality === 'areia') {
         const q = s.srv[team]; q.cur = q.next; q.next = 1 - q.cur;
+      } else if (!s.teams[team].servedFirst) {
+        // 1º side-out do time que começou recebendo no set: assume o 1º saque sem rodar
+        s.teams[team].servedFirst = true;
       } else {
         s.teams[team].lineup = rotate(s.teams[team].lineup); s.teams[team].rotN++;
       }

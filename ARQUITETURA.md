@@ -26,7 +26,7 @@ Desfazer = remover o último evento. O histórico por evento e o placar a cada l
 Evento: `{ id, type:'action'|'sub'|'nextSet', team, athleteId, action, in, out, ts, source:'manual', videoTime:null, confidence:null }`
 
 ## Regras implementadas (engine.js)
-- Quadra: P1 saca. Saque ganha o rally → pontua e **não gira**. Recepção ganha → pontua, assume o saque e **gira um posto horário** (P2→P1→P6→P5→P4→P3→P2). Vale para os dois times.
+- Quadra: P1 saca. Saque ganha o rally → pontua e **não gira**. Recepção ganha → pontua e assume o saque; no **1º side-out** do time que começou recebendo no set, ele assume o saque **sem girar** (mantendo a formação inicial R1), e nos side-outs seguintes **gira um posto horário** (P2→P1→P6→P5→P4→P3→P2).
 - Sets: 25 (5º set 15), diferença de 2, melhor de 5. Saque inicial alterna a cada set. Substituição só em quadra, máx. 6 por set (jogo); livre no treino.
 - Areia: 2 atletas, sem substituições e sem rodízio. Saque alterna entre os dois a cada recuperação de saque. Sets 21/21/15, diferença de 2, melhor de 3. Aviso de troca de lado a cada 7 pontos (5 no 3º set).
 - Ações e pontos: ace, ataque+ , bloqueio e ponto → pontuam para o atleta; erro de saque/ataque/recepção → ponto do adversário. Saque só do sacador atual; recepção só de quem recebe; atleta precisa estar em quadra.

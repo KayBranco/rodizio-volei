@@ -12,10 +12,15 @@ ok(E.rotate([1,2,3,4,5,6])[0]===2,'P2->P1');ok(E.rotate([1,2,3,4,5,6])[5]===1,'P
 // saque mantém sem rodar
 let st=E.replay(cfg('quadra'),[act('home','ace','h1')]);
 eq(st.cur.score,{home:1,away:0},'ace pontua');eq(st.cur.teams.home.lineup[0],'h1','sacador pontua e não roda');ok(st.cur.serving==='home','mantém saque');
-// side-out: visitante ganha, roda e saca
+// 1º side-out do visitante (que começou recebendo): ganha o saque SEM rodar
 st=E.replay(cfg('quadra'),[act('away','atk_ok','a3')]);
 eq(st.cur.score,{home:0,away:1},'ponto visitante');ok(st.cur.serving==='away','visitante saca');
-eq(st.cur.teams.away.lineup,['a2','a3','a4','a5','a6','a1'],'visitante rodou');eq(st.cur.teams.home.lineup,['h1','h2','h3','h4','h5','h6'],'mandante não rodou');
+eq(st.cur.teams.away.lineup,['a1','a2','a3','a4','a5','a6'],'visitante não roda no 1º saque');eq(st.cur.teams.home.lineup,['h1','h2','h3','h4','h5','h6'],'mandante não rodou');
+// side-outs seguintes: ambos rodam normalmente
+st=E.replay(cfg('quadra'),[act('away','atk_ok','a3'),act('home','atk_ok','h3')]);
+eq(st.cur.teams.home.lineup,['h2','h3','h4','h5','h6','h1'],'mandante roda no 1º side-out após ter sacado');
+st=E.replay(cfg('quadra'),[act('away','atk_ok','a3'),act('home','atk_ok','h3'),act('away','atk_ok','a3')]);
+eq(st.cur.teams.away.lineup,['a2','a3','a4','a5','a6','a1'],'visitante roda a partir do 2º side-out');
 // erro de saque -> ponto do adversário e side-out
 st=E.replay(cfg('quadra'),[act('home','serve_err','h1')]);
 eq(st.cur.score,{home:0,away:1},'erro saque');ok(st.cur.serving==='away','troca saque');
@@ -93,6 +98,13 @@ console.log(n+' verificações',process.exitCode?'COM FALHAS':'OK');
  for(let r=2;r<=6;r++){E.apply(stx,{id:'x'+r,type:'action',team:'away',action:'point'});E.apply(stx,{id:'y'+r,type:'action',team:'home',action:'point'});
    // visitante marca (saca), mandante recupera -> gira 1x
    eq(stx.cur.teams.home.lineup.map(role),E.autoLineup('5-1',r,R,['lib']).map(role),'engine gira = funções da rotação '+r);}
+ // quando o time começa recebendo (firstServe:'away'), o 1º side-out mantém R1 e os seguintes giram R2..R6
+ const cfgQRec={modality:'quadra',mode:'jogo',firstServe:'away',teams:{home:{lineup:E.autoLineup('5-1',1,R,['lib']),bench:[],libero:'lib',centrals:['c1','c2']},away:{lineup:['a1','a2','a3','a4','a5','a6'],bench:[]}}};
+ let stRec=E.replay(cfgQRec,[]);
+ E.apply(stRec,{id:'r1',type:'action',team:'home',action:'point'});
+ eq(stRec.cur.teams.home.lineup.map(role),E.autoLineup('5-1',1,R,['lib']).map(role),'time que começa recebendo mantém R1 no 1º ponto');
+ for(let r=2;r<=6;r++){E.apply(stRec,{id:'ra'+r,type:'action',team:'away',action:'point'});E.apply(stRec,{id:'rh'+r,type:'action',team:'home',action:'point'});
+   eq(stRec.cur.teams.home.lineup.map(role),E.autoLineup('5-1',r,R,['lib']).map(role),'time que começa recebendo gira para R'+r+' nos side-outs seguintes');}
  // 4-2: levantadores em diagonal
  for(let r=1;r<=6;r++){const R4=R.map(a=>a.id==='opo'?{...a,role:'Levantador'}:a);const ro=E.autoLineup('4-2',r,R4,['lib']).map(id=>R4.find(a=>a.id===id).role);ok(ro.map((x,i)=>x==='Levantador'?i:-1).filter(i=>i>=0).sort().join()==='0,3'||ro.map((x,i)=>x==='Levantador'?i:-1).filter(i=>i>=0).sort((a,b)=>a-b).reduce((d,x,_,arr)=>Math.abs(arr[1]-arr[0])===3,false),'4-2 levantadores em diagonal R'+r);}
  // líbero: em P5/P6 substitui central, e nunca fica ao lado do outro central; só 1 líbero por vez

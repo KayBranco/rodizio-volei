@@ -293,7 +293,14 @@
 .sb .mid{font-size:12px;color:var(--mut)}
 .sb .srv{font-size:12px;color:var(--gold);font-weight:700;min-height:18px}
 .sb .side-a.serving{outline:2px solid var(--gold);border-radius:12px}
-.sb .side-a{padding:6px 4px}
+.sb .side-a{padding:6px 4px;display:flex;flex-direction:column;align-items:center}
+.sb-ctrls{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:6px}
+.sb-btn{min-width:44px;min-height:38px;padding:4px 12px;border-radius:10px;font-weight:900;font-size:18px;line-height:1;display:inline-flex;align-items:center;justify-content:center;touch-action:manipulation;user-select:none}
+.sb-btn.plus{background:var(--blue);border-color:var(--blue);color:#fff}
+.sb-btn.plus:hover:not(:disabled){filter:brightness(1.08)}
+.sb-btn.minus{background:var(--panel2);border-color:var(--line);color:var(--txt);font-size:16px}
+.sb-btn.minus:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+@media(max-width:480px){.sb-ctrls{gap:6px}.sb-btn{min-width:38px;min-height:34px;padding:4px 10px;font-size:16px}}
 .sheet{margin-bottom:12px}
 .act{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px}
 .act button{min-height:44px}
@@ -323,9 +330,27 @@
       return true;
     }
     function undo() { if (!rec.events.length) return; rec.events.pop(); persist(); compute(); refresh(); toast('Último registro desfeito.'); }
+    function removeLastPointFor(team) {
+      const curSet = R.st.cur.no;
+      for (let i = rec.events.length - 1; i >= 0; i--) {
+        const ev = rec.events[i];
+        if (ev.type === 'nextSet') break;
+        if (ev.type !== 'action') continue;
+        const a = E.ACTIONS[ev.action];
+        if (!a || !a.pts) continue;
+        const scorer = a.pts === 'own' ? ev.team : otherT(ev.team);
+        if (scorer === team && R.trace[i] && R.trace[i].set === curSet) {
+          rec.events.splice(i, 1);
+          persist(); compute(); refresh();
+          toast('1 ponto removido de ' + snap.teams[team].name + '.');
+          return;
+        }
+      }
+      toast('Não há ponto para remover de ' + snap.teams[team].name + ' neste set.', true);
+    }
 
     const court = RV.Court.create(courtBox, cfg.modality, { onSelect: (team, id) => {
-      if (snap.players[id] && snap.players[id].anon) return toast('Adversário sem cadastro: registre os pontos dele com "+1".', true);
+      if (snap.players[id] && snap.players[id].anon) return toast('Adversário sem cadastro: registre os pontos dele pelo botão "+" no placar.', true);
       if (R.st.phase === 'setEnd' || R.st.phase === 'over') return toast('O set terminou. Use "Próximo set" ou finalize.', true);
       sel = { team, id }; court.select(id); drawSheet(); } });
 
@@ -338,12 +363,31 @@
 
     function drawScore() {
       const st = R.st, s = st.cur, srv = E.serverId(st, s.serving), np = isTrain ? {} : E.nextPointInfo(st);
+      const active = st.phase === 'playing' || st.phase === 'treino';
       const rotText = t => { const r = E.currentRot(st, t), sy = cfg.teams[t].system; return r ? (sy ? sy + ' · ' : '') + 'R' + r : ''; };
       const side = (team) => h('div', { class: 'side-a' + (s.serving === team ? ' serving' : '') },
         h('div', { class: 'tn', style: { color: snap.teams[team].color } }, snap.teams[team].name),
         h('div', { class: 'rotl' }, rotText(team)),
         h('div', { class: 'big' }, s.score[team]),
-        np[team] ? h('div', { class: 'pt-badge' }, np[team] === 'match' ? 'PONTO DE JOGO' : 'PONTO DE SET') : null, h('div', { class: 'srv' }, s.serving === team ? '🏐 saca' + (srv ? ': ' + nameOf(srv) : '') : ''));
+        h('div', { class: 'sb-ctrls' },
+          h('button', {
+            type: 'button',
+            class: 'sb-btn minus',
+            disabled: s.score[team] <= 0,
+            'aria-label': 'Remover 1 ponto de ' + snap.teams[team].name,
+            title: 'Remover 1 ponto de ' + snap.teams[team].name,
+            onclick: () => removeLastPointFor(team)
+          }, '−'),
+          h('button', {
+            type: 'button',
+            class: 'sb-btn plus',
+            disabled: !active,
+            'aria-label': 'Adicionar 1 ponto para ' + snap.teams[team].name,
+            title: 'Adicionar 1 ponto para ' + snap.teams[team].name,
+            onclick: () => { if (add({ type: 'action', team, action: 'point' })) refresh(); }
+          }, '+')),
+        np[team] ? h('div', { class: 'pt-badge' }, np[team] === 'match' ? 'PONTO DE JOGO' : 'PONTO DE SET') : null,
+        h('div', { class: 'srv' }, s.serving === team ? '🏐 saca' + (srv ? ': ' + nameOf(srv) : '') : ''));
       sb.innerHTML = '';
       sb.appendChild(side('home'));
       sb.appendChild(h('div', {}, h('div', { class: 'mid' }, isTrain ? 'Treino' : 'Set ' + s.no), isTrain ? h('div', { class: 'mid' }, 'Meta ' + (cfg.target || 25)) : h('div', { class: 'big', style: { fontSize: '22px' } }, st.sets.home + ' – ' + st.sets.away), isTrain ? null : h('div', { class: 'mid' }, 'sets')));
@@ -386,7 +430,6 @@
     function drawCtrl() {
       ctrl.innerHTML = '';
       const st = R.st, active = st.phase === 'playing' || st.phase === 'treino';
-      ['home', 'away'].forEach(t => ctrl.appendChild(h('button', { disabled: !active, onclick: () => { if (add({ type: 'action', team: t, action: 'point' })) refresh(); } }, '+1 ' + snap.teams[t].name)));
       ctrl.appendChild(h('button', { disabled: !rec.events.length, onclick: undo }, '↶ Desfazer'));
       if (!isBeach) ctrl.appendChild(h('button', { disabled: !active, onclick: subDialog }, '⇄ Substituição'));
       ctrl.appendChild(h('button', { class: 'pri', onclick: () => {

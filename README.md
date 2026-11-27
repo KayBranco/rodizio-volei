@@ -4,8 +4,8 @@ Plataforma web para **treinar, jogar, gerenciar equipes e aprender** os sistemas
 
 ## Módulos da Plataforma
 
-- **Modo Treino**: selecione a modalidade (quadra ou areia), sua equipe, o adversário e os atletas em quadra para registrar fundamentos em tempo real (saques, ataques, bloqueios, recepções, defesas, assistências e pontos).
-- **Modo Jogo**: controle completo de partida com placar, sets, acompanhamento de rodízio real, posse de saque, substituições, histórico de eventos, estatísticas individuais por atleta e opção de desfazer ações.
+- **Modo Treino**: selecione a modalidade (quadra ou areia), sua equipe, o adversário e os atletas em quadra para registrar fundamentos em tempo real (saques, ataques, bloqueios, recepções, defesas, assistências e pontos) e controlar o placar diretamente pelos botões `+` e `−`.
+- **Modo Jogo**: controle completo de partida com placar interativo (`+` e `−` por equipe), sets, acompanhamento de rodízio oficial (sem rotação no primeiro *side-out* do time que inicia recebendo), posse de saque, substituições, histórico de eventos, estatísticas individuais por atleta e opção de desfazer ações.
 - **Minhas Equipes / Atletas**: cadastro e gestão de equipes (nome, modalidade e cor) e elenco (nome, número da camisa, função tática e status de titular/reserva).
 - **Estatísticas e Temporadas**: histórico completo de partidas, métricas consolidadas por atleta ou equipe, comparação de desempenho entre períodos e suporte a múltiplas temporadas.
 - **Tutorial e Aprendizado (`tutorial.html`)**: simulador animado e interativo para visualizar a movimentação dos jogadores na quadra em diferentes sistemas táticos.
@@ -62,3 +62,39 @@ A ordem de deslocamento segue o ciclo `P1 → P6 → P5 → P4 → P3 → P2 →
 ```javascript
 const ORDER = [1, 6, 5, 4, 3, 2];
 const slotAfter = (s0, rot) => ORDER[(ORDER.indexOf(s0) + rot - 1) % 6];
+```
+
+*(Para detalhes aprofundados sobre a estrutura de arquivos, motor de regras e modelos de dados, consulte `ARQUITETURA.md`.)*
+
+---
+
+## Como Executar e Publicar
+
+### Localmente
+Não há etapa de compilação ou instalação de pacotes. Basta clonar o repositório e abrir o arquivo `index.html` diretamente no navegador.
+
+### Testes Automatizados
+Caso tenha o Node.js instalado, você pode validar o motor de regras e a integridade dos dados executando:
+
+```bash
+node test_engine.js
+node test_data.js
+```
+
+### Deploy na Vercel
+1. Acesse [vercel.com](https://vercel.com) com sua conta do GitHub.
+2. Clique em **Add New → Project** e selecione este repositório.
+3. Mantenha os arquivos na raiz do projeto (sem comando de build) e clique em **Deploy**.
+
+---
+
+## Roadmap (Ideias Futuras)
+
+- [ ] Modo quiz interativo para treinar posicionamento ("Onde fica o central na R3?")
+- [ ] Variações de sistemas de recepção (ex.: recepção com 3 passadores)
+- [ ] Compartilhamento de rotações ou formações específicas via URL
+- [ ] Visualização com perspectiva aprimorada da quadra
+
+## Créditos
+
+Inspirado em demonstrações visuais de sistemas táticos de vôlei. Desenvolvido para facilitar o aprendizado de iniciantes e auxiliar jogadores e equipes no acompanhamento de treinos e partidas. 🏐
