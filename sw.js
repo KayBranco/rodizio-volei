@@ -1,5 +1,5 @@
 /* sw.js — deixa o app funcionar sem internet. Estratégia: rede primeiro (sempre pega a versão nova), cache como reserva. */
-const CACHE = 'rodizio-v4';
+const CACHE = 'rodizio-v5';
 const FILES = ['./', 'index.html', 'tutorial.html', 'styles.css', 'engine.js', 'data.js', 'ui.js', 'court.js', 'teams.js', 'match.js', 'stats.js', 'app.js', 'icon.svg', 'manifest.webmanifest'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

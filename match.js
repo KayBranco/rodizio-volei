@@ -100,8 +100,10 @@
           opt('', '— escolher —', !c.lineup[i]), all.map(a => opt(a.id, '#' + a.number + ' ' + a.name + ' (' + abb(a.role) + (a.role !== a.reg ? '*' : '') + ')', c.lineup[i] === a.id)));
         return h('div', { class: 'field', style: { margin: '4px 0' } }, h('label', {}, beach ? (i === 0 ? 'Atleta 1 · saca primeiro' : 'Atleta 2') : 'P' + (i + 1)), sel);
       };
-      const grid = beach ? h('div', { class: 'grid', style: { gridTemplateColumns: '1fr 1fr' } }, mk(0), mk(1))
-        : h('div', {}, h('div', { class: 'sm-t mut' }, 'Rede ▲'), h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(3,1fr)', gap: '6px' } }, [3, 2, 1, 4, 5, 0].map(mk)));
+      const grid = beach ? h('div', { class: 'court-pick-grid beach' }, mk(0), mk(1))
+        : h('div', { class: 'court-pick-wrap' },
+            h('div', { class: 'court-net-bar' }, '▲ REDE'),
+            h('div', { class: 'court-pick-grid' }, [3, 2, 1, 4, 5, 0].map(mk)));
       const parts = head.concat([grid]);
       if (!beach && all.length) {
         const changedRoles = all.some(a => a.role !== a.reg);
@@ -163,12 +165,59 @@
           h('div', { style: { marginTop: '10px' } }, h('button', { class: 'pri', onclick: () => RV.go('equipes') }, 'Ir para Minhas Equipes'))));
         return;
       }
-      const hs = h('select', { onchange: () => { S.team.home = hs.value; if (S.team.away === S.team.home) S.team.away = (ts.find(t => t.id !== S.team.home) || {}).id || ANON; pickTeams(); keepScroll(draw); } }, ts.map(t => opt(t.id, t.name, S.team.home === t.id)));
-      const aOpts = ts.filter(t => t.id !== S.team.home).map(t => opt(t.id, t.name, S.team.away === t.id));
-      if (mode === 'jogo') aOpts.push(opt(ANON, 'Sem cadastro (só o nome)', S.team.away === ANON));
-      const as = h('select', { onchange: () => { S.team.away = as.value; autofill('away'); keepScroll(draw); } }, aOpts);
-      box.appendChild(h('div', { class: 'grid g2', style: { marginTop: '12px' } }, h('div', { class: 'card' }, field('Time A · sua equipe (embaixo)', hs)), h('div', { class: 'card' }, field('Time B · adversário (em cima)', as))));
-      box.appendChild(h('div', { class: 'grid g2', style: { marginTop: '12px' } }, teamCard('home'), teamCard('away')));
+      function teamPicker(t) {
+        const isHome = t === 'home';
+        const title = isHome ? 'Time A · sua equipe (embaixo)' : 'Time B · adversário (em cima)';
+        const list = isHome ? ts : ts.filter(x => x.id !== S.team.home);
+        const onSelect = id => {
+          if (isHome) {
+            S.team.home = id;
+            if (S.team.away === S.team.home) S.team.away = (ts.find(x => x.id !== S.team.home) || {}).id || (mode === 'jogo' ? ANON : null);
+            pickTeams();
+          } else {
+            S.team.away = id;
+            autofill('away');
+          }
+          keepScroll(draw);
+        };
+        const useDropdown = list.length + (!isHome && mode === 'jogo' ? 1 : 0) > 4;
+        if (useDropdown) {
+          const opts = list.map(tm => opt(tm.id, tm.name + ' (' + D.teamAthletes(tm.id).length + ' atletas)', S.team[t] === tm.id));
+          if (!isHome && mode === 'jogo') opts.push(opt(ANON, 'Sem cadastro (só o nome)', S.team.away === ANON));
+          const sel = h('select', { onchange: () => onSelect(sel.value) }, opts);
+          return h('div', { class: 'card' }, field(title, sel));
+        }
+        const pills = list.map(tm => {
+          const active = S.team[t] === tm.id;
+          const cnt = D.teamAthletes(tm.id).length;
+          return h('button', {
+            type: 'button',
+            class: 'team-pick-btn' + (active ? ' on' : ''),
+            'aria-pressed': active,
+            onclick: () => onSelect(tm.id)
+          },
+            h('span', { class: 'dot', style: { background: tm.color } }),
+            h('span', { class: 'team-pick-name' }, tm.name),
+            h('span', { class: 'pill' }, cnt + ' atl.'));
+        });
+        if (!isHome && mode === 'jogo') {
+          const active = S.team.away === ANON;
+          pills.push(h('button', {
+            type: 'button',
+            class: 'team-pick-btn' + (active ? ' on' : ''),
+            'aria-pressed': active,
+            onclick: () => onSelect(ANON)
+          },
+            h('span', { class: 'dot', style: { background: '#ef4444' } }),
+            h('span', { class: 'team-pick-name' }, 'Sem cadastro (só o nome)')));
+        }
+        return h('div', { class: 'card' },
+          h('div', { class: 'field', style: { margin: 0 } },
+            h('label', {}, title),
+            h('div', { class: 'team-pick-list' }, pills)));
+      }
+      box.appendChild(h('div', { class: 'setup-teams-grid' }, teamPicker('home'), teamPicker('away')));
+      box.appendChild(h('div', { class: 'setup-teams-grid' }, teamCard('home'), teamCard('away')));
       const nameOf = t => (isAnon(t) ? (S.anonName.trim() || 'Adversário') : D.find('teams', S.team[t]).name);
       const fs = h('select', { onchange: () => { S.first = fs.value; } }, opt('home', nameOf('home'), S.first === 'home'), opt('away', nameOf('away'), S.first === 'away'));
       const seas = h('select', { onchange: () => { S.season = seas.value; } }, D.D().seasons.map(s => opt(s.id, s.name, S.season === s.id)));
