@@ -112,8 +112,9 @@
             keepScroll(draw);
           } }, D.ROLES.map(r => opt(r, r + (r === a.reg ? ' · cadastro' : ''), a.role === r)));
           return h('div', { class: 'role-player-row' },
-            h('span', { class: 'num' }, a.number),
-            h('div', { class: 'role-player-name', title: a.name }, a.name),
+            h('div', { class: 'role-player-info' },
+              h('span', { class: 'num' }, a.number),
+              h('div', { class: 'role-player-name', title: a.name }, a.name)),
             rs);
         });
         parts.push(h('section', { class: 'role-editor' },
