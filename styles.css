@@ -64,3 +64,13 @@ h1{font-size:22px;margin:0}h2{font-size:17px;margin:18px 0 8px}h3{font-size:15px
 .court-svg g[role=button]:focus{outline:none}
 .court-svg g[role=button]:focus-visible .ring{opacity:1!important;stroke:#fff}
 @media(max-width:899px){.sheet .hint-t{display:none}}
+
+/* Editor de função por atleta — configuração pré-jogo */
+.role-editor{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+.role-editor-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.role-player-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:8px}
+.role-player-row{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:9px;min-width:0;padding:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.role-player-name{min-width:0;overflow-wrap:anywhere;word-break:normal;font-weight:600;line-height:1.3}
+select.role-edit-btn{width:auto;min-width:132px;max-width:100%;min-height:42px;padding:8px 30px 8px 11px;border:1px solid var(--blue);border-radius:10px;background:var(--panel2);color:var(--txt);font-weight:700;cursor:pointer;box-shadow:inset 0 0 0 1px #4f8cff22}
+select.role-edit-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media(max-width:420px){.role-player-row{grid-template-columns:34px minmax(0,1fr);gap:7px}.role-player-row .role-edit-btn{grid-column:2;width:100%;min-width:0}.role-editor{padding:10px}}

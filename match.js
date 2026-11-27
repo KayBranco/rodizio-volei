@@ -68,6 +68,7 @@
     function applyLast(L) { S.modality = L.modality; S.team = L.team; S.anonName = L.anonName || 'Adversário'; S.roles = L.roles || {}; S.first = L.first || 'home'; S.conf = L.conf; ['home', 'away'].forEach(t => { S.conf[t].manual = true; }); }
 
     function keepScroll(fn) { const y = window.scrollY; fn(); window.scrollTo(0, y); }
+    function nesteJogoLabel() { return ' neste jogo'; }
 
     function teamCard(t) {
       const c = S.conf[t], label = t === 'home' ? 'Time A · sua equipe' : 'Time B · adversário';
@@ -103,17 +104,24 @@
         : h('div', {}, h('div', { class: 'sm-t mut' }, 'Rede ▲'), h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(3,1fr)', gap: '6px' } }, [3, 2, 1, 4, 5, 0].map(mk)));
       const parts = head.concat([grid]);
       if (!beach && all.length) {
+        const changedRoles = all.some(a => a.role !== a.reg);
         const rows = all.map(a => {
-          const rs = h('select', { 'aria-label': 'Função de ' + a.name + ' neste jogo', style: { minWidth: '130px' }, onchange: () => {
+          const rs = h('select', { class: 'role-edit-btn', 'aria-label': 'Alterar função de ' + a.name + nesteJogoLabel(), onchange: () => {
             if (rs.value === a.reg) delete S.roles[a.id]; else S.roles[a.id] = rs.value;
             if (!c.manual) autofill(t);
             keepScroll(draw);
-          } }, D.ROLES.map(r => opt(r, r + (r === a.reg ? ' (cadastro)' : ''), a.role === r)));
-          return h('div', { class: 'li', style: { padding: '4px 0' } }, h('span', { class: 'num' }, a.number), h('div', { class: 'grow' }, a.name), rs);
+          } }, D.ROLES.map(r => opt(r, r + (r === a.reg ? ' · cadastro' : ''), a.role === r)));
+          return h('div', { class: 'role-player-row' },
+            h('span', { class: 'num' }, a.number),
+            h('div', { class: 'role-player-name', title: a.name }, a.name),
+            rs);
         });
-        parts.push(h('details', { style: { marginTop: '8px' }, open: all.some(a => a.role !== a.reg) },
-          h('summary', { class: 'sm-t' }, 'Função de cada atleta neste jogo' + (all.some(a => a.role !== a.reg) ? ' (alterada)' : '')),
-          h('div', { class: 'sm-t mut', style: { margin: '6px 0' } }, 'Só vale para esta partida; o cadastro não muda. Ex.: um líbero pode jogar de oposto, um central de ponteiro.'), h('div', {}, rows)));
+        parts.push(h('section', { class: 'role-editor' },
+          h('div', { class: 'role-editor-head' },
+            h('b', {}, 'Função de cada atleta neste jogo'),
+            h('span', { class: 'pill' }, changedRoles ? 'Personalizada' : 'Do cadastro')),
+          h('div', { class: 'sm-t mut', style: { margin: '5px 0 10px' } }, 'Toque no botão para escolher a função que cada atleta vai exercer. A mudança vale só para esta partida; o cadastro original não muda.'),
+          h('div', { class: 'role-player-list' }, rows)));
       }
       if (!beach) {
         const warns = E.checkLineup(c.sys, c.rot, c.lineup.map(id => (byId(id) || {}).role || ''));
